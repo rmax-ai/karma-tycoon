@@ -51,6 +51,9 @@ Viral events are random occurrences that provide temporary boosts:
 - **Effect**: 5x multiplier to a specific subreddit's income.
 - **Duration**: 30 seconds.
 
+## Advanced Game Dynamics
+For detailed information on popularity curves, seasonality, and algorithm fatigue, see [GAME_DYNAMICS.md](GAME_DYNAMICS.md).
+
 ## Data Structures
 
 ### Subreddit

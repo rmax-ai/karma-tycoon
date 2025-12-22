@@ -11,6 +11,21 @@ export interface Subreddit {
   multiplier: number;
   unlocked: boolean;
   tier: number;
+  activityPeriod: number; // in seconds
+  activityPhase: number; // 0 to 2*PI
+  fatigue: number; // 0 to 1
+  category: string;
+  health: number; // 0 to 100
+}
+
+export interface Post {
+  id: string;
+  subredditId: string;
+  createdAt: number;
+  peakKps: number;
+  peakTime: number; // seconds from creation
+  duration: number; // total lifecycle in seconds
+  k: number; // sharpness factor
 }
 
 export interface GlobalUpgrade {
@@ -38,14 +53,15 @@ export interface TierInfo {
   name: string;
   minKarma: number;
   maxKarma: number;
+  maxPostSlots: number;
 }
 
 export const TIER_THRESHOLDS: TierInfo[] = [
-  { tier: 1, name: 'The Basics', minKarma: 0, maxKarma: 1000 },
-  { tier: 2, name: 'Community Management', minKarma: 1000, maxKarma: 10000 },
-  { tier: 3, name: 'Viral Growth', minKarma: 10000, maxKarma: 100000 },
-  { tier: 4, name: 'Platform Dominance', minKarma: 100000, maxKarma: 1000000 },
-  { tier: 5, name: 'The Front Page', minKarma: 1000000, maxKarma: 10000000 },
+  { tier: 1, name: 'The Basics', minKarma: 0, maxKarma: 1000, maxPostSlots: 3 },
+  { tier: 2, name: 'Community Management', minKarma: 1000, maxKarma: 10000, maxPostSlots: 5 },
+  { tier: 3, name: 'Viral Growth', minKarma: 10000, maxKarma: 100000, maxPostSlots: 10 },
+  { tier: 4, name: 'Platform Dominance', minKarma: 100000, maxKarma: 1000000, maxPostSlots: 20 },
+  { tier: 5, name: 'The Front Page', minKarma: 1000000, maxKarma: 10000000, maxPostSlots: 50 },
 ];
 
 export interface GameState {
@@ -54,14 +70,16 @@ export interface GameState {
   subreddits: Subreddit[];
   upgrades: GlobalUpgrade[];
   activeEvents: ViralEvent[];
+  activePosts: Post[];
   lastTick: number;
 }
 
 export interface GameActions {
-  addKarma: (amount: number) => void;
+  addKarma: (amount: number, qualityMultiplier?: number) => void;
   purchaseSubreddit: (id: string) => void;
   upgradeSubreddit: (id: string) => void;
   purchaseUpgrade: (id: string) => void;
+  clearModQueue: (id: string) => void;
   tick: (delta: number) => void;
 }
 
@@ -69,25 +87,25 @@ export type GameStore = GameState & GameActions;
 
 const INITIAL_SUBREDDITS: Subreddit[] = [
   // Tier 1
-  { id: 'r-funny', name: 'r/funny', subscribers: 0, karmaPerSecond: 1, level: 0, baseCost: 10, multiplier: 1, unlocked: true, tier: 1 },
-  { id: 'r-pics', name: 'r/pics', subscribers: 0, karmaPerSecond: 5, level: 0, baseCost: 100, multiplier: 1, unlocked: false, tier: 1 },
-  { id: 'r-gaming', name: 'r/gaming', subscribers: 0, karmaPerSecond: 20, level: 0, baseCost: 500, multiplier: 1, unlocked: false, tier: 1 },
+  { id: 'r-funny', name: 'r/funny', subscribers: 0, karmaPerSecond: 1, level: 0, baseCost: 10, multiplier: 1, unlocked: true, tier: 1, activityPeriod: 3600, activityPhase: 0, fatigue: 0, category: 'Entertainment', health: 100 },
+  { id: 'r-pics', name: 'r/pics', subscribers: 0, karmaPerSecond: 5, level: 0, baseCost: 100, multiplier: 1, unlocked: false, tier: 1, activityPeriod: 7200, activityPhase: Math.PI / 4, fatigue: 0, category: 'Entertainment', health: 100 },
+  { id: 'r-gaming', name: 'r/gaming', subscribers: 0, karmaPerSecond: 20, level: 0, baseCost: 500, multiplier: 1, unlocked: false, tier: 1, activityPeriod: 14400, activityPhase: Math.PI / 2, fatigue: 0, category: 'Gaming', health: 100 },
   // Tier 2
-  { id: 'r-aww', name: 'r/aww', subscribers: 0, karmaPerSecond: 75, level: 0, baseCost: 2000, multiplier: 1, unlocked: false, tier: 2 },
-  { id: 'r-science', name: 'r/science', subscribers: 0, karmaPerSecond: 150, level: 0, baseCost: 5000, multiplier: 1, unlocked: false, tier: 2 },
-  { id: 'r-worldnews', name: 'r/worldnews', subscribers: 0, karmaPerSecond: 300, level: 0, baseCost: 10000, multiplier: 1, unlocked: false, tier: 2 },
+  { id: 'r-aww', name: 'r/aww', subscribers: 0, karmaPerSecond: 75, level: 0, baseCost: 2000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 3600, activityPhase: Math.PI, fatigue: 0, category: 'Entertainment', health: 100 },
+  { id: 'r-science', name: 'r/science', subscribers: 0, karmaPerSecond: 150, level: 0, baseCost: 5000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 28800, activityPhase: 0, fatigue: 0, category: 'Education', health: 100 },
+  { id: 'r-worldnews', name: 'r/worldnews', subscribers: 0, karmaPerSecond: 300, level: 0, baseCost: 10000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 1800, activityPhase: Math.PI / 3, fatigue: 0, category: 'News', health: 100 },
   // Tier 3
-  { id: 'r-movies', name: 'r/movies', subscribers: 0, karmaPerSecond: 800, level: 0, baseCost: 25000, multiplier: 1, unlocked: false, tier: 3 },
-  { id: 'r-music', name: 'r/music', subscribers: 0, karmaPerSecond: 1500, level: 0, baseCost: 50000, multiplier: 1, unlocked: false, tier: 3 },
-  { id: 'r-technology', name: 'r/technology', subscribers: 0, karmaPerSecond: 3000, level: 0, baseCost: 100000, multiplier: 1, unlocked: false, tier: 3 },
+  { id: 'r-movies', name: 'r/movies', subscribers: 0, karmaPerSecond: 800, level: 0, baseCost: 25000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 21600, activityPhase: Math.PI / 6, fatigue: 0, category: 'Entertainment', health: 100 },
+  { id: 'r-music', name: 'r/music', subscribers: 0, karmaPerSecond: 1500, level: 0, baseCost: 50000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 10800, activityPhase: Math.PI / 8, fatigue: 0, category: 'Entertainment', health: 100 },
+  { id: 'r-technology', name: 'r/technology', subscribers: 0, karmaPerSecond: 3000, level: 0, baseCost: 100000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 43200, activityPhase: 0, fatigue: 0, category: 'Tech', health: 100 },
   // Tier 4
-  { id: 'r-todayilearned', name: 'r/todayilearned', subscribers: 0, karmaPerSecond: 8000, level: 0, baseCost: 250000, multiplier: 1, unlocked: false, tier: 4 },
-  { id: 'r-askreddit', name: 'r/askreddit', subscribers: 0, karmaPerSecond: 15000, level: 0, baseCost: 500000, multiplier: 1, unlocked: false, tier: 4 },
-  { id: 'r-showerthoughts', name: 'r/showerthoughts', subscribers: 0, karmaPerSecond: 30000, level: 0, baseCost: 1000000, multiplier: 1, unlocked: false, tier: 4 },
+  { id: 'r-todayilearned', name: 'r/todayilearned', subscribers: 0, karmaPerSecond: 8000, level: 0, baseCost: 250000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 86400, activityPhase: Math.PI / 2, fatigue: 0, category: 'Education', health: 100 },
+  { id: 'r-askreddit', name: 'r/askreddit', subscribers: 0, karmaPerSecond: 15000, level: 0, baseCost: 500000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 3600, activityPhase: 0, fatigue: 0, category: 'Social', health: 100 },
+  { id: 'r-showerthoughts', name: 'r/showerthoughts', subscribers: 0, karmaPerSecond: 30000, level: 0, baseCost: 1000000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 7200, activityPhase: Math.PI / 4, fatigue: 0, category: 'Social', health: 100 },
   // Tier 5
-  { id: 'r-wallstreetbets', name: 'r/wallstreetbets', subscribers: 0, karmaPerSecond: 80000, level: 0, baseCost: 2500000, multiplier: 1, unlocked: false, tier: 5 },
-  { id: 'r-cryptocurrency', name: 'r/cryptocurrency', subscribers: 0, karmaPerSecond: 150000, level: 0, baseCost: 5000000, multiplier: 1, unlocked: false, tier: 5 },
-  { id: 'r-announcements', name: 'r/announcements', subscribers: 0, karmaPerSecond: 500000, level: 0, baseCost: 10000000, multiplier: 1, unlocked: false, tier: 5 },
+  { id: 'r-wallstreetbets', name: 'r/wallstreetbets', subscribers: 0, karmaPerSecond: 80000, level: 0, baseCost: 2500000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 14400, activityPhase: Math.PI / 2, fatigue: 0, category: 'Finance', health: 100 },
+  { id: 'r-cryptocurrency', name: 'r/cryptocurrency', subscribers: 0, karmaPerSecond: 150000, level: 0, baseCost: 5000000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 28800, activityPhase: 0, fatigue: 0, category: 'Finance', health: 100 },
+  { id: 'r-announcements', name: 'r/announcements', subscribers: 0, karmaPerSecond: 500000, level: 0, baseCost: 10000000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 86400, activityPhase: 0, fatigue: 0, category: 'Social', health: 100 },
 ];
 
 const INITIAL_UPGRADES: GlobalUpgrade[] = [
@@ -127,19 +145,51 @@ export const useGameStore = create<GameStore>()(
       subreddits: INITIAL_SUBREDDITS,
       upgrades: INITIAL_UPGRADES,
       activeEvents: [],
+      activePosts: [],
       lastTick: Date.now(),
 
-      addKarma: (amount: number) => {
+      addKarma: (amount: number, qualityMultiplier: number = 1) => {
         const state = get();
+        const lifetimeKarma = state.lifetimeKarma;
+        const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
+        
+        if (state.activePosts.length >= currentTier.maxPostSlots) {
+          return; // Limit reached
+        }
+
+        const unlockedSubs = state.subreddits.filter(s => s.unlocked);
+        if (unlockedSubs.length === 0) return;
+
+        const randomSub = unlockedSubs[Math.floor(Math.random() * unlockedSubs.length)];
+        
         const clickMultiplier = state.upgrades
           .filter((u) => u.purchased && u.type === 'click')
           .reduce((acc, u) => acc * u.multiplier, 1);
+
+        // Calculate peak KPS based on subreddit level and multipliers
+        const basePeakKps = randomSub.karmaPerSecond * (randomSub.level || 1) * randomSub.multiplier * clickMultiplier;
+        const fatigueMultiplier = 1 - (randomSub.fatigue || 0);
+        const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (Date.now() / 1000)) / randomSub.activityPeriod + randomSub.activityPhase);
         
-        const finalAmount = amount * clickMultiplier;
-        
+        const finalPeakKps = basePeakKps * fatigueMultiplier * activityMultiplier * (0.8 + Math.random() * 0.7) * qualityMultiplier; // Random quality factor
+
+        const newPost: Post = {
+          id: `post-${Date.now()}-${Math.random()}`,
+          subredditId: randomSub.id,
+          createdAt: Date.now(),
+          peakKps: finalPeakKps,
+          peakTime: (10 + Math.random() * 20) * (qualityMultiplier > 1 ? 1.5 : 1), // Peaks later if high quality
+          duration: (60 + Math.random() * 120) * (qualityMultiplier > 1 ? 2 : 1), // Lasts longer if high quality
+          k: 1.5 + Math.random() * 1.0, // Sharpness
+        };
+
         set((state: GameState) => ({
-          totalKarma: state.totalKarma + finalAmount,
-          lifetimeKarma: state.lifetimeKarma + finalAmount,
+          activePosts: [...state.activePosts, newPost],
+          subreddits: state.subreddits.map(s =>
+            s.id === randomSub.id
+              ? { ...s, fatigue: Math.min(0.8, (s.fatigue || 0) + 0.1) }
+              : s
+          )
         }));
       },
 
@@ -201,6 +251,14 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
+      clearModQueue: (id: string) => {
+        set((state: GameState) => ({
+          subreddits: state.subreddits.map(s =>
+            s.id === id ? { ...s, health: Math.min(100, s.health + 20) } : s
+          )
+        }));
+      },
+
       tick: (delta: number) => {
         const state = get();
         
@@ -248,16 +306,51 @@ export const useGameStore = create<GameStore>()(
           }
         }
 
-        // 3. Calculate income
-        let income = 0;
-        state.subreddits.forEach((sub) => {
+        // 3. Update active posts and calculate their income
+        const now = Date.now();
+        const updatedPosts = state.activePosts.filter(post => (now - post.createdAt) / 1000 < post.duration);
+        
+        let postIncome = 0;
+        updatedPosts.forEach(post => {
+          const t = (now - post.createdAt) / 1000;
+          const ratio = t / post.peakTime;
+          // Gamma distribution-like curve: f(t) = PeakKPS * (t/PeakTime)^k * e^(k * (1 - t/PeakTime))
+          const kps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
+          postIncome += kps * delta;
+        });
+
+        // 4. Calculate passive income with seasonality, fatigue, and health
+        let passiveIncome = 0;
+        const updatedSubreddits = state.subreddits.map(sub => {
+          // Fatigue decay: 5% per second
+          const newFatigue = Math.max(0, (sub.fatigue || 0) - 0.05 * delta);
+          
+          // Health decay: increases with level
+          const healthDecayRate = 0.1 + (sub.level * 0.01);
+          const newHealth = Math.max(0, (sub.health || 100) - healthDecayRate * delta);
+
           if (sub.level > 0) {
             const subEventMultiplier = newEvents
               .filter(e => e.subredditId === sub.id)
               .reduce((acc, e) => acc * e.multiplier, 1);
             
-            income += sub.karmaPerSecond * sub.level * sub.multiplier * subEventMultiplier * delta;
+            const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
+            const fatigueMultiplier = 1 - newFatigue;
+            
+            // Health penalty: linear drop below 50% health
+            const healthMultiplier = newHealth < 50 ? (newHealth / 50) : 1;
+
+            // Synergy: +5% for each active post in the same category
+            const synergyPosts = updatedPosts.filter(p => {
+              const postSub = state.subreddits.find(s => s.id === p.subredditId);
+              return postSub?.category === sub.category && p.subredditId !== sub.id;
+            });
+            const synergyMultiplier = 1 + (synergyPosts.length * 0.05);
+
+            passiveIncome += sub.karmaPerSecond * sub.level * sub.multiplier * subEventMultiplier * activityMultiplier * fatigueMultiplier * synergyMultiplier * healthMultiplier * delta;
           }
+          
+          return { ...sub, fatigue: newFatigue, health: newHealth };
         });
 
         const passiveUpgradeMultiplier = state.upgrades
@@ -268,13 +361,15 @@ export const useGameStore = create<GameStore>()(
           .filter(e => !e.subredditId)
           .reduce((acc, event) => acc * event.multiplier, 1);
 
-        const totalIncome = income * passiveUpgradeMultiplier * globalMultiplier;
+        const totalIncome = (passiveIncome + postIncome) * passiveUpgradeMultiplier * globalMultiplier;
 
         set((state: GameState) => ({
           totalKarma: state.totalKarma + totalIncome,
           lifetimeKarma: state.lifetimeKarma + totalIncome,
+          subreddits: updatedSubreddits,
           activeEvents: newEvents,
-          lastTick: Date.now(),
+          activePosts: updatedPosts,
+          lastTick: now,
         }));
       },
     }),
@@ -302,6 +397,11 @@ export const useGameStore = create<GameStore>()(
               unlocked: persistedSub.unlocked,
               multiplier: persistedSub.multiplier || initialSub.multiplier,
               subscribers: persistedSub.subscribers || initialSub.subscribers,
+              activityPeriod: persistedSub.activityPeriod || initialSub.activityPeriod,
+              activityPhase: persistedSub.activityPhase || initialSub.activityPhase,
+              fatigue: persistedSub.fatigue || 0,
+              health: persistedSub.health !== undefined ? persistedSub.health : 100,
+              category: persistedSub.category || initialSub.category,
             };
           }
           return initialSub;
@@ -324,6 +424,7 @@ export const useGameStore = create<GameStore>()(
           ...state,
           subreddits: mergedSubreddits,
           upgrades: mergedUpgrades,
+          activePosts: state.activePosts || [],
         };
       },
     }
