@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useGameStore, Subreddit } from '@/store/useGameStore';
+import { useGameStore, Subreddit, TIER_THRESHOLDS } from '@/store/useGameStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, ArrowUpCircle, Zap } from 'lucide-react';
@@ -10,16 +10,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 export const SubredditList = () => {
   const subreddits = useGameStore((state) => state.subreddits);
   const totalKarma = useGameStore((state) => state.totalKarma);
+  const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
   const upgradeSubreddit = useGameStore((state) => state.upgradeSubreddit);
   const activeEvents = useGameStore((state) => state.activeEvents);
+
+  const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
 
   const calculateCost = (subreddit: Subreddit) => {
     return Math.floor(subreddit.baseCost * Math.pow(1.15, subreddit.level));
   };
 
+  // Filter subreddits by tier
+  const visibleSubreddits = subreddits.filter(sub => sub.tier <= currentTier.tier);
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-8">
-      {subreddits.map((sub) => {
+      {visibleSubreddits.map((sub) => {
         const cost = calculateCost(sub);
         const canAfford = totalKarma >= cost;
         

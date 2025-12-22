@@ -1,14 +1,16 @@
 'use client';
 
 import React from 'react';
-import { useGameStore, GlobalUpgrade } from '@/store/useGameStore';
+import { useGameStore, GlobalUpgrade, TIER_THRESHOLDS } from '@/store/useGameStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Zap, TrendingUp, MousePointer2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const UpgradesList = () => {
-  const { upgrades, totalKarma, purchaseUpgrade } = useGameStore();
+  const { upgrades, totalKarma, lifetimeKarma, purchaseUpgrade } = useGameStore();
+
+  const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
 
   const getIcon = (type: GlobalUpgrade['type']) => {
     switch (type) {
@@ -23,9 +25,12 @@ export const UpgradesList = () => {
     }
   };
 
+  // Filter upgrades by tier
+  const visibleUpgrades = upgrades.filter(upgrade => upgrade.tier <= currentTier.tier);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {upgrades.map((upgrade: GlobalUpgrade) => (
+      {visibleUpgrades.map((upgrade: GlobalUpgrade) => (
         <motion.div
           key={upgrade.id}
           whileHover={{ scale: 1.02 }}
