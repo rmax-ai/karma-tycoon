@@ -16,6 +16,8 @@ export const UpgradesList = () => {
         return <MousePointer2 className="w-4 h-4" />;
       case 'passive':
         return <TrendingUp className="w-4 h-4" />;
+      case 'event':
+        return <Zap className="w-4 h-4" />;
       default:
         return <Zap className="w-4 h-4" />;
     }

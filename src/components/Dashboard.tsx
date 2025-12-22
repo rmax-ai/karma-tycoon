@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useGameStore } from '@/store/useGameStore';
+import { useGameStore, TIER_THRESHOLDS } from '@/store/useGameStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, MousePointer2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { TrendingUp, MousePointer2, Info, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TierInfoModal } from './TierInfoModal';
 
 interface FloatingText {
   id: number;
@@ -16,12 +18,14 @@ interface FloatingText {
 
 export const Dashboard = () => {
   const totalKarma = useGameStore((state) => state.totalKarma);
+  const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
   const addKarma = useGameStore((state) => state.addKarma);
   const subreddits = useGameStore((state) => state.subreddits);
   const activeEvents = useGameStore((state) => state.activeEvents);
   const upgrades = useGameStore((state) => state.upgrades);
 
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
+  const [isTierModalOpen, setIsTierModalOpen] = useState(false);
 
   // Calculate KPS
   const kps = subreddits.reduce((acc, sub) => {
@@ -43,6 +47,14 @@ export const Dashboard = () => {
   const clickMultiplier = upgrades
     .filter((u) => u.purchased && u.type === 'click')
     .reduce((acc, u) => acc * u.multiplier, 1);
+
+  // Tier Logic
+  const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
+  const nextTier = TIER_THRESHOLDS.find(t => t.tier === currentTier.tier + 1);
+  
+  const tierProgress = nextTier 
+    ? ((lifetimeKarma - currentTier.minKarma) / (currentTier.maxKarma - currentTier.minKarma)) * 100
+    : 100;
 
   const handleCreateContent = (e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -70,10 +82,22 @@ export const Dashboard = () => {
       <Card className="col-span-full lg:col-span-2">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-2xl font-bold">Karma Dashboard</CardTitle>
-          <TrendingUp className="h-6 w-6 text-orange-500" />
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setIsTierModalOpen(true)}
+            >
+              <Trophy className="w-4 h-4 text-orange-500" />
+              Tier {currentTier.tier}
+              <Info className="w-3 h-3 text-muted-foreground" />
+            </Button>
+            <TrendingUp className="h-6 w-6 text-orange-500" />
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-6 space-y-4">
+          <div className="flex flex-col items-center justify-center py-6 space-y-6">
             <div className="text-center">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Karma</p>
               <motion.h2 
@@ -87,6 +111,17 @@ export const Dashboard = () => {
               </motion.h2>
             </div>
             
+            <div className="w-full max-w-md space-y-2">
+              <div className="flex justify-between text-xs font-medium text-muted-foreground uppercase tracking-tighter">
+                <span>Tier {currentTier.tier}: {currentTier.name}</span>
+                {nextTier && <span>Next: {nextTier.name}</span>}
+              </div>
+              <Progress value={tierProgress} className="h-2" />
+              <p className="text-[10px] text-center text-muted-foreground">
+                {Math.floor(lifetimeKarma).toLocaleString()} / {currentTier.maxKarma.toLocaleString()} Lifetime Karma
+              </p>
+            </div>
+
             <div className="flex items-center space-x-2 text-muted-foreground">
               <span className="font-semibold text-foreground">{totalKps.toFixed(1)}</span>
               <span>Karma / second</span>
@@ -121,6 +156,12 @@ export const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      <TierInfoModal 
+        isOpen={isTierModalOpen} 
+        onClose={() => setIsTierModalOpen(false)} 
+        currentTier={currentTier.tier}
+      />
     </div>
   );
 };
