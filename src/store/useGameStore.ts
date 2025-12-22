@@ -74,6 +74,14 @@ export interface GameState {
   lastTick: number;
 }
 
+export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue';
+
+export interface Celebration {
+  id: string;
+  type: CelebrationType;
+  timestamp: number;
+}
+
 export interface GameActions {
   addKarma: (amount: number, qualityMultiplier?: number) => void;
   purchaseSubreddit: (id: string) => void;
@@ -81,9 +89,11 @@ export interface GameActions {
   purchaseUpgrade: (id: string) => void;
   clearModQueue: (id: string) => void;
   tick: (delta: number) => void;
+  triggerCelebration: (type: CelebrationType) => void;
+  removeCelebration: (id: string) => void;
 }
 
-export type GameStore = GameState & GameActions;
+export type GameStore = GameState & GameActions & { celebrations: Celebration[] };
 
 const INITIAL_SUBREDDITS: Subreddit[] = [
   // Tier 1
@@ -146,7 +156,25 @@ export const useGameStore = create<GameStore>()(
       upgrades: INITIAL_UPGRADES,
       activeEvents: [],
       activePosts: [],
+      celebrations: [],
       lastTick: Date.now(),
+
+      triggerCelebration: (type: CelebrationType) => {
+        const id = `celebration-${Date.now()}-${Math.random()}`;
+        set((state) => ({
+          celebrations: [...state.celebrations, { id, type, timestamp: Date.now() }]
+        }));
+        // Auto-remove after 2 seconds
+        setTimeout(() => {
+          get().removeCelebration(id);
+        }, 2000);
+      },
+
+      removeCelebration: (id: string) => {
+        set((state) => ({
+          celebrations: state.celebrations.filter(c => c.id !== id)
+        }));
+      },
 
       addKarma: (amount: number, qualityMultiplier: number = 1) => {
         const state = get();
@@ -191,6 +219,7 @@ export const useGameStore = create<GameStore>()(
               : s
           )
         }));
+        get().triggerCelebration('content');
       },
 
       purchaseSubreddit: (id: string) => {
@@ -208,6 +237,7 @@ export const useGameStore = create<GameStore>()(
                 : s
             ),
           }));
+          get().triggerCelebration('unlock');
         }
       },
 
@@ -218,6 +248,7 @@ export const useGameStore = create<GameStore>()(
 
         const cost = subreddit.baseCost * Math.pow(1.15, subreddit.level);
         if (state.totalKarma >= cost) {
+          const isUnlock = subreddit.level === 0;
           set((state: GameState) => ({
             totalKarma: state.totalKarma - cost,
             subreddits: state.subreddits.map((s) => {
@@ -233,6 +264,7 @@ export const useGameStore = create<GameStore>()(
               return s;
             }),
           }));
+          get().triggerCelebration(isUnlock ? 'unlock' : 'levelup');
         }
       },
 
@@ -248,6 +280,7 @@ export const useGameStore = create<GameStore>()(
               u.id === id ? { ...u, purchased: true } : u
             ),
           }));
+          get().triggerCelebration('upgrade');
         }
       },
 
@@ -257,6 +290,7 @@ export const useGameStore = create<GameStore>()(
             s.id === id ? { ...s, health: Math.min(100, s.health + 20) } : s
           )
         }));
+        get().triggerCelebration('modqueue');
       },
 
       tick: (delta: number) => {
@@ -377,6 +411,10 @@ export const useGameStore = create<GameStore>()(
       name: 'karma-tycoon-storage',
       storage: createJSONStorage(() => localStorage),
       version: 1,
+      partialize: (state) => {
+        const { celebrations, ...rest } = state as any;
+        return rest;
+      },
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {
           // Handle migration from version 0 if needed

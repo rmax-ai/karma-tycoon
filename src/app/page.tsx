@@ -7,6 +7,7 @@ import { useGameLoop } from '@/hooks/useGameLoop';
 import { ViralEventPopup } from '@/components/ViralEventPopup';
 import { MascotAnimations } from '@/components/MascotAnimations';
 import { CollapsibleSection } from '@/components/CollapsibleSection';
+import { CelebrationOverlay } from '@/components/CelebrationOverlay';
 
 export default function Home() {
   // Initialize the game loop
@@ -36,6 +37,7 @@ export default function Home() {
       </div>
       <ViralEventPopup />
       <MascotAnimations />
+      <CelebrationOverlay />
     </main>
   );
 }

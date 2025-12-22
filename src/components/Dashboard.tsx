@@ -32,26 +32,6 @@ export const Dashboard = () => {
 
   // Calculate KPS
   const now = Date.now();
-  const passiveKps = subreddits.reduce((acc, sub) => {
-    if (sub.level > 0) {
-      const subEventMultiplier = activeEvents
-        .filter(e => e.subredditId === sub.id)
-        .reduce((acc, e) => acc * e.multiplier, 1);
-      
-      const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
-      const fatigueMultiplier = 1 - (sub.fatigue || 0);
-
-      return acc + sub.karmaPerSecond * sub.level * sub.multiplier * subEventMultiplier * activityMultiplier * fatigueMultiplier;
-    }
-    return acc;
-  }, 0);
-
-  const postKps = activePosts.reduce((acc, post) => {
-    const t = (now - post.createdAt) / 1000;
-    const ratio = t / post.peakTime;
-    const kps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
-    return acc + kps;
-  }, 0);
 
   const globalMultiplier = activeEvents
     .filter(e => !e.subredditId)
@@ -60,6 +40,44 @@ export const Dashboard = () => {
   const passiveUpgradeMultiplier = upgrades
     .filter((u) => u.purchased && u.type === 'passive')
     .reduce((acc, u) => acc * u.multiplier, 1);
+
+  const subredditsWithKps = subreddits
+    .filter(sub => sub.level > 0)
+    .map(sub => {
+      const subEventMultiplier = activeEvents
+        .filter(e => e.subredditId === sub.id)
+        .reduce((acc, e) => acc * e.multiplier, 1);
+      
+      const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
+      const fatigueMultiplier = 1 - (sub.fatigue || 0);
+      const healthMultiplier = (sub.health || 100) < 50 ? ((sub.health || 100) / 50) : 1;
+
+      const synergyPosts = activePosts.filter(p => {
+        const postSub = subreddits.find(s => s.id === p.subredditId);
+        return postSub?.category === sub.category && p.subredditId !== sub.id;
+      });
+      const synergyMultiplier = 1 + (synergyPosts.length * 0.05);
+
+      const kps = sub.karmaPerSecond * sub.level * sub.multiplier * subEventMultiplier * activityMultiplier * fatigueMultiplier * healthMultiplier * synergyMultiplier;
+      
+      return {
+        ...sub,
+        currentKps: kps * passiveUpgradeMultiplier * globalMultiplier
+      };
+    });
+
+  const passiveKps = subredditsWithKps.reduce((acc, sub) => acc + (sub.currentKps / (passiveUpgradeMultiplier * globalMultiplier)), 0);
+
+  const topSubreddits = [...subredditsWithKps]
+    .sort((a, b) => b.currentKps - a.currentKps)
+    .slice(0, 5);
+
+  const postKps = activePosts.reduce((acc, post) => {
+    const t = (now - post.createdAt) / 1000;
+    const ratio = t / post.peakTime;
+    const kps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
+    return acc + kps;
+  }, 0);
 
   const totalKps = (passiveKps + postKps) * passiveUpgradeMultiplier * globalMultiplier;
 
@@ -219,54 +237,92 @@ export const Dashboard = () => {
         </CardContent>
       </Card>
 
-      <Card className="col-span-full lg:col-span-1">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-orange-500" />
-            Active Posts
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-            <AnimatePresence mode="popLayout">
-              {activePosts.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No active posts. Start creating content!</p>
+      <div className="col-span-full lg:col-span-1 flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-orange-500" />
+              Active Posts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+              <AnimatePresence mode="popLayout">
+                {activePosts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No active posts. Start creating content!</p>
+                ) : (
+                  activePosts.map((post) => {
+                    const sub = subreddits.find(s => s.id === post.subredditId);
+                    const t = (now - post.createdAt) / 1000;
+                    const progress = (t / post.duration) * 100;
+                    const ratio = t / post.peakTime;
+                    const currentKps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
+                    
+                    return (
+                      <motion.div
+                        key={post.id}
+                        layout
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="p-3 rounded-lg border bg-card text-card-foreground shadow-sm space-y-2"
+                      >
+                        <div className="flex justify-between items-start">
+                          <span className="text-xs font-bold">{sub?.name || 'Unknown Sub'}</span>
+                          <span className="text-[10px] font-mono text-orange-600 font-bold">
+                            +{currentKps.toFixed(1)} KPS
+                          </span>
+                        </div>
+                        <Progress value={progress} className="h-1" />
+                        <div className="flex justify-between text-[8px] text-muted-foreground uppercase">
+                          <span>{t < post.peakTime ? 'Rising' : 'Fading'}</span>
+                          <span>{Math.max(0, post.duration - t).toFixed(0)}s left</span>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </AnimatePresence>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-orange-500" />
+              Top Subreddits
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topSubreddits.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">No subreddits owned yet.</p>
               ) : (
-                activePosts.map((post) => {
-                  const sub = subreddits.find(s => s.id === post.subredditId);
-                  const t = (now - post.createdAt) / 1000;
-                  const progress = (t / post.duration) * 100;
-                  const ratio = t / post.peakTime;
-                  const currentKps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
-                  
-                  return (
-                    <motion.div
-                      key={post.id}
-                      layout
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="p-3 rounded-lg border bg-card text-card-foreground shadow-sm space-y-2"
-                    >
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs font-bold">{sub?.name || 'Unknown Sub'}</span>
-                        <span className="text-[10px] font-mono text-orange-600 font-bold">
-                          +{currentKps.toFixed(1)} KPS
-                        </span>
+                topSubreddits.map((sub, index) => (
+                  <div key={sub.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-muted-foreground w-4">{index + 1}.</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold">{sub.name}</span>
+                        <span className="text-[10px] text-muted-foreground">Level {sub.level}</span>
                       </div>
-                      <Progress value={progress} className="h-1" />
-                      <div className="flex justify-between text-[8px] text-muted-foreground uppercase">
-                        <span>{t < post.peakTime ? 'Rising' : 'Fading'}</span>
-                        <span>{Math.max(0, post.duration - t).toFixed(0)}s left</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-orange-600">
+                        {sub.currentKps.toFixed(1)} KPS
                       </div>
-                    </motion.div>
-                  );
-                })
+                      <div className="text-[10px] text-muted-foreground">
+                        {((sub.currentKps / totalKps) * 100).toFixed(1)}% of total
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
-            </AnimatePresence>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <TierInfoModal
         isOpen={isTierModalOpen} 
