@@ -23,6 +23,7 @@ Karma Tycoon is an incremental (idle) game built with Next.js where players grow
 - Implement responsive design for mobile "toilet gaming" experience.
 
 # Development Commands
+- Enable Node 24: `nvm use 24`
 - Dev server: `npm run dev`
 - Build: `npm run build`
 - Lint: `npm run lint`
