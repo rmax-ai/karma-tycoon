@@ -44,13 +44,13 @@ export const Dashboard = () => {
   const subredditsWithKps = subreddits
     .filter(sub => sub.level > 0)
     .map(sub => {
-      const subEventMultiplier = activeEvents
-        .filter(e => e.subredditId === sub.id)
-        .reduce((acc, e) => acc * e.multiplier, 1);
-      
       const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
       const fatigueMultiplier = 1 - (sub.fatigue || 0);
       const healthMultiplier = (sub.health || 100) < 50 ? ((sub.health || 100) / 50) : 1;
+
+      // Activity-based decay
+      const activePostsInSub = activePosts.filter(p => p.subredditId === sub.id);
+      const activityScore = activePostsInSub.length === 0 ? 0 : activePostsInSub.length === 1 ? 0.5 : 1;
 
       const synergyPosts = activePosts.filter(p => {
         const postSub = subreddits.find(s => s.id === p.subredditId);
@@ -58,7 +58,7 @@ export const Dashboard = () => {
       });
       const synergyMultiplier = 1 + (synergyPosts.length * 0.05);
 
-      const kps = sub.karmaPerSecond * sub.level * sub.multiplier * subEventMultiplier * activityMultiplier * fatigueMultiplier * healthMultiplier * synergyMultiplier;
+      const kps = sub.karmaPerSecond * sub.level * sub.multiplier * activityScore * activityMultiplier * fatigueMultiplier * healthMultiplier * synergyMultiplier;
       
       return {
         ...sub,

@@ -47,9 +47,12 @@ export const ViralEventPopup = () => {
                   <Zap className="h-6 w-6 text-white animate-pulse" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-orange-800 dark:text-orange-200">Viral Event!</h3>
+                  <h3 className="font-bold text-orange-800 dark:text-orange-200">Viral Opportunity!</h3>
                   <p className="text-sm text-orange-700 dark:text-orange-300">
                     {currentEvent.name}
+                  </p>
+                  <p className="text-[10px] text-orange-600 dark:text-orange-400 mt-1 italic">
+                    Post in this subreddit now to claim the boost!
                   </p>
                   <div className="mt-2 flex items-center space-x-2">
                     <span className="text-xs font-bold bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200 px-2 py-0.5 rounded">

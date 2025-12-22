@@ -15,6 +15,8 @@ export const SubredditList = () => {
   const upgradeSubreddit = useGameStore((state) => state.upgradeSubreddit);
   const clearModQueue = useGameStore((state) => state.clearModQueue);
   const activeEvents = useGameStore((state) => state.activeEvents);
+  const activePosts = useGameStore((state) => state.activePosts);
+  const addKarma = useGameStore((state) => state.addKarma);
 
   const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
 
@@ -31,15 +33,18 @@ export const SubredditList = () => {
         const cost = calculateCost(sub);
         const canAfford = totalKarma >= cost;
         
-        const subEventMultiplier = activeEvents
-          .filter(e => e.subredditId === sub.id)
-          .reduce((acc, e) => acc * e.multiplier, 1);
+        const viralEvent = activeEvents.find(e => e.subredditId === sub.id);
+        const subEventMultiplier = viralEvent ? viralEvent.multiplier : 1;
         
         const now = Date.now();
         const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
         const fatigueMultiplier = 1 - (sub.fatigue || 0);
         
-        const kps = sub.karmaPerSecond * sub.level * sub.multiplier * subEventMultiplier * activityMultiplier * fatigueMultiplier;
+        // Activity-based decay
+        const activePostsInSub = activePosts.filter(p => p.subredditId === sub.id);
+        const activityScore = activePostsInSub.length === 0 ? 0 : activePostsInSub.length === 1 ? 0.5 : 1;
+        
+        const kps = sub.karmaPerSecond * sub.level * sub.multiplier * activityScore * activityMultiplier * fatigueMultiplier;
         const isViral = subEventMultiplier > 1;
 
         const activityLevel = activityMultiplier > 1.3 ? 'High' : activityMultiplier < 0.7 ? 'Low' : 'Normal';
@@ -122,28 +127,42 @@ export const SubredditList = () => {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  {health < 80 && (
+                <div className="flex flex-col gap-2">
+                  {sub.unlocked && (
                     <Button
-                      variant="outline"
+                      variant={isViral ? "default" : "secondary"}
                       size="sm"
-                      className="flex-1 text-[10px] h-8 border-orange-500/50 hover:bg-orange-500/10"
-                      onClick={() => clearModQueue(sub.id)}
+                      className={`w-full text-[10px] h-8 ${isViral ? 'bg-orange-500 hover:bg-orange-600 animate-pulse' : ''}`}
+                      onClick={() => addKarma(1, 1, sub.id)}
+                      disabled={activePosts.length >= currentTier.maxPostSlots}
                     >
-                      <ShieldAlert className="mr-1 h-3 w-3 text-orange-500" />
-                      Mod Queue
+                      <Zap className={`mr-1 h-3 w-3 ${isViral ? 'fill-white' : ''}`} />
+                      {isViral ? 'POST (VIRAL BOOST!)' : 'Create Post'}
                     </Button>
                   )}
-                  <Button
-                    className={`flex-[2] transition-all h-8 text-[10px] ${canAfford && !sub.unlocked ? 'animate-bounce' : ''}`}
-                    variant={canAfford ? "default" : "outline"}
-                    disabled={!canAfford}
-                    onClick={() => upgradeSubreddit(sub.id)}
-                    data-testid={`subreddit-upgrade-btn-${sub.id}`}
-                  >
-                    <ArrowUpCircle className="mr-1 h-3 w-3" />
-                    {sub.level === 0 ? 'Unlock' : 'Level Up'} — {cost.toLocaleString()}
-                  </Button>
+                  <div className="flex gap-2">
+                    {health < 80 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-[10px] h-8 border-orange-500/50 hover:bg-orange-500/10"
+                        onClick={() => clearModQueue(sub.id)}
+                      >
+                        <ShieldAlert className="mr-1 h-3 w-3 text-orange-500" />
+                        Mod Queue
+                      </Button>
+                    )}
+                    <Button
+                      className={`flex-[2] transition-all h-8 text-[10px] ${canAfford && !sub.unlocked ? 'animate-bounce' : ''}`}
+                      variant={canAfford ? "default" : "outline"}
+                      disabled={!canAfford}
+                      onClick={() => upgradeSubreddit(sub.id)}
+                      data-testid={`subreddit-upgrade-btn-${sub.id}`}
+                    >
+                      <ArrowUpCircle className="mr-1 h-3 w-3" />
+                      {sub.level === 0 ? 'Unlock' : 'Level Up'} — {cost.toLocaleString()}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

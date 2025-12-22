@@ -87,7 +87,7 @@ export interface Celebration {
 }
 
 export interface GameActions {
-  addKarma: (amount: number, qualityMultiplier?: number) => void;
+  addKarma: (amount: number, qualityMultiplier?: number, subredditId?: string) => void;
   purchaseSubreddit: (id: string) => void;
   upgradeSubreddit: (id: string) => void;
   purchaseUpgrade: (id: string) => void;
@@ -181,7 +181,7 @@ export const useGameStore = create<GameStore>()(
         }));
       },
 
-      addKarma: (amount: number, qualityMultiplier: number = 1) => {
+      addKarma: (amount: number, qualityMultiplier: number = 1, subredditId?: string) => {
         const state = get();
         const lifetimeKarma = state.lifetimeKarma;
         const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
@@ -197,25 +197,33 @@ export const useGameStore = create<GameStore>()(
         const unlockedSubs = state.subreddits.filter(s => s.unlocked);
         if (unlockedSubs.length === 0) return;
 
-        const randomSub = unlockedSubs[Math.floor(Math.random() * unlockedSubs.length)];
+        const targetSub = subredditId
+          ? state.subreddits.find(s => s.id === subredditId)
+          : unlockedSubs[Math.floor(Math.random() * unlockedSubs.length)];
         
+        if (!targetSub || !targetSub.unlocked) return;
+
         const clickMultiplier = state.upgrades
           .filter((u) => u.purchased && u.type === 'click')
           .reduce((acc, u) => acc * u.multiplier, 1);
 
+        // Viral boost check
+        const viralEvent = state.activeEvents.find(e => e.subredditId === targetSub.id);
+        const viralMultiplier = viralEvent ? viralEvent.multiplier : 1;
+
         // Calculate peak KPS based on subreddit level and multipliers
-        const basePeakKps = randomSub.karmaPerSecond * (randomSub.level || 1) * randomSub.multiplier * clickMultiplier;
-        const fatigueMultiplier = 1 - (randomSub.fatigue || 0);
-        const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (Date.now() / 1000)) / randomSub.activityPeriod + randomSub.activityPhase);
+        const basePeakKps = targetSub.karmaPerSecond * (targetSub.level || 1) * targetSub.multiplier * clickMultiplier * viralMultiplier;
+        const fatigueMultiplier = 1 - (targetSub.fatigue || 0);
+        const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (Date.now() / 1000)) / targetSub.activityPeriod + targetSub.activityPhase);
         
         // Health penalty: linear drop below 75% health
-        const healthMultiplier = randomSub.health < 75 ? (randomSub.health / 75) : 1;
+        const healthMultiplier = targetSub.health < 75 ? (targetSub.health / 75) : 1;
         
         const finalPeakKps = basePeakKps * fatigueMultiplier * activityMultiplier * healthMultiplier * (0.8 + Math.random() * 0.7) * qualityMultiplier * currentTier.clickPowerMultiplier; // Random quality factor
 
         const newPost: Post = {
           id: `post-${Date.now()}-${Math.random()}`,
-          subredditId: randomSub.id,
+          subredditId: targetSub.id,
           createdAt: Date.now(),
           peakKps: finalPeakKps,
           peakTime: (10 + Math.random() * 20) * (qualityMultiplier > 1 ? 1.5 : 1), // Peaks later if high quality
@@ -227,7 +235,7 @@ export const useGameStore = create<GameStore>()(
           activePosts: [...state.activePosts, newPost],
           clickEnergy: state.clickEnergy - 1,
           subreddits: state.subreddits.map(s =>
-            s.id === randomSub.id
+            s.id === targetSub.id
               ? { ...s, fatigue: Math.min(0.8, (s.fatigue || 0) + 0.1) }
               : s
           )
@@ -326,7 +334,7 @@ export const useGameStore = create<GameStore>()(
         const newEvents = [...updatedEvents];
         
         if (Math.random() < VIRAL_CHANCE * delta) {
-          const unlockedSubs = state.subreddits.filter(s => s.unlocked);
+          const unlockedSubs = state.subreddits.filter(s => s.unlocked && !newEvents.some(e => e.subredditId === s.id));
           if (unlockedSubs.length > 0) {
             const randomSub = unlockedSubs[Math.floor(Math.random() * unlockedSubs.length)];
             const eventId = `viral-${Date.now()}`;
@@ -339,14 +347,17 @@ export const useGameStore = create<GameStore>()(
               .filter(u => u.purchased && (u.id === 'front-page-feature' || u.id === 'cultural-phenomenon'))
               .reduce((acc, u) => acc * u.multiplier, 1);
 
-            const baseDuration = 30;
-            const baseMultiplier = 5;
+            const baseDuration = 60;
+            // Inverse scaling formula: favors lower tier
+            const maxBoost = Math.max(2, Math.floor(20 / randomSub.tier));
+            const randomBoost = Math.floor(Math.random() * (maxBoost - 1)) + 2;
+            const finalMultiplier = Math.round(randomBoost * viralPowerMultiplier);
 
             newEvents.push({
               id: eventId,
-              name: `Viral Post in ${randomSub.name}!`,
+              name: `Viral Opportunity in ${randomSub.name}!`,
               subredditId: randomSub.id,
-              multiplier: baseMultiplier * viralPowerMultiplier,
+              multiplier: finalMultiplier,
               duration: baseDuration * viralDurationMultiplier,
               remainingTime: baseDuration * viralDurationMultiplier,
             });
@@ -377,10 +388,10 @@ export const useGameStore = create<GameStore>()(
           const newHealth = Math.max(0, (sub.health || 100) - healthDecayRate * delta);
 
           if (sub.level > 0) {
-            const subEventMultiplier = newEvents
-              .filter(e => e.subredditId === sub.id)
-              .reduce((acc, e) => acc * e.multiplier, 1);
-            
+            // Activity-based decay: 0 posts = 0%, 1 post = 50%, 2+ posts = 100%
+            const activePostsInSub = updatedPosts.filter(p => p.subredditId === sub.id);
+            const activityScore = activePostsInSub.length === 0 ? 0 : activePostsInSub.length === 1 ? 0.5 : 1;
+
             const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
             const fatigueMultiplier = 1 - newFatigue;
             
@@ -394,7 +405,8 @@ export const useGameStore = create<GameStore>()(
             });
             const synergyMultiplier = 1 + (synergyPosts.length * 0.05);
 
-            passiveIncome += sub.karmaPerSecond * sub.level * sub.multiplier * subEventMultiplier * activityMultiplier * fatigueMultiplier * synergyMultiplier * healthMultiplier * delta;
+            // Note: subEventMultiplier is no longer applied to passive income, only to manual posts
+            passiveIncome += sub.karmaPerSecond * sub.level * sub.multiplier * activityScore * activityMultiplier * fatigueMultiplier * synergyMultiplier * healthMultiplier * delta;
           }
           
           return { ...sub, fatigue: newFatigue, health: newHealth };
