@@ -54,14 +54,17 @@ export interface TierInfo {
   minKarma: number;
   maxKarma: number;
   maxPostSlots: number;
+  maxEnergy: number;
+  rechargeRate: number; // seconds per 1 energy
+  clickPowerMultiplier: number;
 }
 
 export const TIER_THRESHOLDS: TierInfo[] = [
-  { tier: 1, name: 'The Basics', minKarma: 0, maxKarma: 1000, maxPostSlots: 3 },
-  { tier: 2, name: 'Community Management', minKarma: 1000, maxKarma: 10000, maxPostSlots: 5 },
-  { tier: 3, name: 'Viral Growth', minKarma: 10000, maxKarma: 100000, maxPostSlots: 10 },
-  { tier: 4, name: 'Platform Dominance', minKarma: 100000, maxKarma: 1000000, maxPostSlots: 20 },
-  { tier: 5, name: 'The Front Page', minKarma: 1000000, maxKarma: 10000000, maxPostSlots: 50 },
+  { tier: 1, name: 'The Basics', minKarma: 0, maxKarma: 1000, maxPostSlots: 3, maxEnergy: 50, rechargeRate: 1, clickPowerMultiplier: 1 },
+  { tier: 2, name: 'Community Management', minKarma: 1000, maxKarma: 10000, maxPostSlots: 5, maxEnergy: 30, rechargeRate: 10, clickPowerMultiplier: 15 },
+  { tier: 3, name: 'Viral Growth', minKarma: 10000, maxKarma: 100000, maxPostSlots: 10, maxEnergy: 15, rechargeRate: 60, clickPowerMultiplier: 200 },
+  { tier: 4, name: 'Platform Dominance', minKarma: 100000, maxKarma: 1000000, maxPostSlots: 20, maxEnergy: 5, rechargeRate: 300, clickPowerMultiplier: 3000 },
+  { tier: 5, name: 'The Front Page', minKarma: 1000000, maxKarma: 10000000, maxPostSlots: 50, maxEnergy: 1, rechargeRate: 1200, clickPowerMultiplier: 50000 },
 ];
 
 export interface GameState {
@@ -71,6 +74,7 @@ export interface GameState {
   upgrades: GlobalUpgrade[];
   activeEvents: ViralEvent[];
   activePosts: Post[];
+  clickEnergy: number;
   lastTick: number;
 }
 
@@ -156,6 +160,7 @@ export const useGameStore = create<GameStore>()(
       upgrades: INITIAL_UPGRADES,
       activeEvents: [],
       activePosts: [],
+      clickEnergy: 50,
       celebrations: [],
       lastTick: Date.now(),
 
@@ -185,6 +190,10 @@ export const useGameStore = create<GameStore>()(
           return; // Limit reached
         }
 
+        if (state.clickEnergy < 1) {
+          return; // Not enough energy
+        }
+
         const unlockedSubs = state.subreddits.filter(s => s.unlocked);
         if (unlockedSubs.length === 0) return;
 
@@ -202,7 +211,7 @@ export const useGameStore = create<GameStore>()(
         // Health penalty: linear drop below 75% health
         const healthMultiplier = randomSub.health < 75 ? (randomSub.health / 75) : 1;
         
-        const finalPeakKps = basePeakKps * fatigueMultiplier * activityMultiplier * healthMultiplier * (0.8 + Math.random() * 0.7) * qualityMultiplier; // Random quality factor
+        const finalPeakKps = basePeakKps * fatigueMultiplier * activityMultiplier * healthMultiplier * (0.8 + Math.random() * 0.7) * qualityMultiplier * currentTier.clickPowerMultiplier; // Random quality factor
 
         const newPost: Post = {
           id: `post-${Date.now()}-${Math.random()}`,
@@ -216,6 +225,7 @@ export const useGameStore = create<GameStore>()(
 
         set((state: GameState) => ({
           activePosts: [...state.activePosts, newPost],
+          clickEnergy: state.clickEnergy - 1,
           subreddits: state.subreddits.map(s =>
             s.id === randomSub.id
               ? { ...s, fatigue: Math.min(0.8, (s.fatigue || 0) + 0.1) }
@@ -400,14 +410,24 @@ export const useGameStore = create<GameStore>()(
 
         const totalIncome = (passiveIncome + postIncome) * passiveUpgradeMultiplier * globalMultiplier;
 
-        set((state: GameState) => ({
-          totalKarma: state.totalKarma + totalIncome,
-          lifetimeKarma: state.lifetimeKarma + totalIncome,
-          subreddits: updatedSubreddits,
-          activeEvents: newEvents,
-          activePosts: updatedPosts,
-          lastTick: now,
-        }));
+        set((state: GameState) => {
+          const lifetimeKarma = state.lifetimeKarma + totalIncome;
+          const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
+          
+          // Energy recharge
+          const energyGain = delta / currentTier.rechargeRate;
+          const newEnergy = Math.min(currentTier.maxEnergy, state.clickEnergy + energyGain);
+
+          return {
+            totalKarma: state.totalKarma + totalIncome,
+            lifetimeKarma,
+            subreddits: updatedSubreddits,
+            activeEvents: newEvents,
+            activePosts: updatedPosts,
+            clickEnergy: newEnergy,
+            lastTick: now,
+          };
+        });
       },
     }),
     {
@@ -466,6 +486,7 @@ export const useGameStore = create<GameStore>()(
           subreddits: mergedSubreddits,
           upgrades: mergedUpgrades,
           activePosts: state.activePosts || [],
+          clickEnergy: state.clickEnergy !== undefined ? state.clickEnergy : 50,
         };
       },
     }
