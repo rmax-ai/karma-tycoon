@@ -52,25 +52,31 @@ interface GameStore {
 
 ## 6. Implementation Phases
 
-### Phase 1: Foundation
+### Phase 1: Foundation [DONE]
 - Scaffold Next.js app.
 - Setup Tailwind and shadcn/ui.
 - Create the basic Zustand store with `persist` middleware.
 
-### Phase 2: Core Loop
+### Phase 2: Core Loop [DONE]
 - Implement the "Post" button and basic karma incrementing.
 - Implement the "Subreddit" purchase logic.
 - Create a `useGameLoop` hook to handle passive income.
 
-### Phase 3: Progression & Scaling
+### Phase 3: Progression & Scaling [DONE]
 - Add "Upgrades" tab.
 - Implement exponential cost scaling for subreddits ($Cost = BaseCost \times 1.15^{Level}$).
 - Add "Level Milestones" (e.g., at level 25, 50, 100, speed doubles).
 
-### Phase 4: Polish & Viral Hooks
+### Phase 4: Polish & Viral Hooks [DONE]
 - Add Framer Motion animations for karma gains.
 - Implement "Viral Events" popups.
 - Responsive design for mobile "toilet gaming" experience.
+
+## 7. Implementation Notes & Adjustments
+- **Viral Events**: Implemented as a random 1% chance per second. Added a `ViralEventPopup` component to notify players of active boosts.
+- **Level Milestones**: Specifically implemented at levels 25, 50, and 100, where the subreddit's income multiplier doubles.
+- **Game Loop**: Throttled the `tick` function to 100ms intervals within the `requestAnimationFrame` loop to optimize performance while maintaining smoothness.
+- **State Persistence**: Used `zustand/middleware`'s `persist` with `localStorage` for seamless progress saving.
 
 ## 7. Mermaid Diagram: Game Logic Flow
 
