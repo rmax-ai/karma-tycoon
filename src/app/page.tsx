@@ -8,6 +8,7 @@ import { ViralEventPopup } from '@/components/ViralEventPopup';
 import { MascotAnimations } from '@/components/MascotAnimations';
 import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { CelebrationOverlay } from '@/components/CelebrationOverlay';
+import { GameOverModal } from '@/components/GameOverModal';
 
 export default function Home() {
   // Initialize the game loop
@@ -38,6 +39,7 @@ export default function Home() {
       <ViralEventPopup />
       <MascotAnimations />
       <CelebrationOverlay />
+      <GameOverModal />
     </main>
   );
 }

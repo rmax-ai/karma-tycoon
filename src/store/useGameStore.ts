@@ -46,6 +46,10 @@ export interface ViralEvent {
   multiplier: number;
   duration: number; // in seconds
   remainingTime: number;
+  isNegative: boolean;
+  description?: string;
+  type: 'local' | 'global';
+  healthLoss?: number;
 }
 
 export interface TierInfo {
@@ -76,6 +80,8 @@ export interface GameState {
   activePosts: Post[];
   clickEnergy: number;
   lastTick: number;
+  isGameOver: boolean;
+  gracePeriod: number;
 }
 
 export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue';
@@ -95,6 +101,8 @@ export interface GameActions {
   tick: (delta: number) => void;
   triggerCelebration: (type: CelebrationType) => void;
   removeCelebration: (id: string) => void;
+  resetGame: () => void;
+  continueGame: () => void;
 }
 
 export type GameStore = GameState & GameActions & { celebrations: Celebration[] };
@@ -151,6 +159,14 @@ const INITIAL_UPGRADES: GlobalUpgrade[] = [
   { id: 'front-page-internet', name: 'Front Page of the Internet', description: 'You ARE Reddit. 10x Click Power', cost: 10000000, multiplier: 10, purchased: false, type: 'click', tier: 5 },
 ];
 
+const NEGATIVE_EVENTS = [
+  { name: 'Subreddit Drama', description: 'Users are arguing in the comments.', multiplier: 0.5, duration: 45, type: 'local' as const, healthLoss: 0 },
+  { name: 'Mod Abuse', description: 'A moderator went on a power trip.', multiplier: 0.2, duration: 20, type: 'local' as const, healthLoss: 40 },
+  { name: 'Brigaded!', description: 'A rival community is downvoting everything!', multiplier: 0.1, duration: 30, type: 'local' as const, healthLoss: 0 },
+  { name: 'Algorithm Suppression', description: 'The algorithm has suppressed your reach.', multiplier: 0.5, duration: 60, type: 'global' as const, healthLoss: 0 },
+  { name: 'Server Outage', description: "Reddit's servers are struggling.", multiplier: 0.05, duration: 15, type: 'global' as const, healthLoss: 0 },
+];
+
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
@@ -163,6 +179,8 @@ export const useGameStore = create<GameStore>()(
       clickEnergy: 50,
       celebrations: [],
       lastTick: Date.now(),
+      isGameOver: false,
+      gracePeriod: 0,
 
       triggerCelebration: (type: CelebrationType) => {
         const id = `celebration-${Date.now()}-${Math.random()}`;
@@ -207,12 +225,12 @@ export const useGameStore = create<GameStore>()(
           .filter((u) => u.purchased && u.type === 'click')
           .reduce((acc, u) => acc * u.multiplier, 1);
 
-        // Viral boost check
-        const viralEvent = state.activeEvents.find(e => e.subredditId === targetSub.id);
-        const viralMultiplier = viralEvent ? viralEvent.multiplier : 1;
+        // Viral boost check (including negative events)
+        const localEvents = state.activeEvents.filter(e => e.subredditId === targetSub.id);
+        const localMultiplier = localEvents.reduce((acc, e) => acc * e.multiplier, 1);
 
         // Calculate peak KPS based on subreddit level and multipliers
-        const basePeakKps = targetSub.karmaPerSecond * (targetSub.level || 1) * targetSub.multiplier * clickMultiplier * viralMultiplier;
+        const basePeakKps = targetSub.karmaPerSecond * (targetSub.level || 1) * targetSub.multiplier * clickMultiplier * localMultiplier;
         const fatigueMultiplier = 1 - (targetSub.fatigue || 0);
         const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (Date.now() / 1000)) / targetSub.activityPeriod + targetSub.activityPhase);
         
@@ -314,9 +332,32 @@ export const useGameStore = create<GameStore>()(
         get().triggerCelebration('modqueue');
       },
 
+      resetGame: () => {
+        set({
+          totalKarma: 0,
+          lifetimeKarma: 0,
+          subreddits: INITIAL_SUBREDDITS,
+          upgrades: INITIAL_UPGRADES,
+          activeEvents: [],
+          activePosts: [],
+          clickEnergy: 50,
+          isGameOver: false,
+          gracePeriod: 0,
+        });
+      },
+
+      continueGame: () => {
+        set({
+          isGameOver: false,
+          gracePeriod: 60, // 60 seconds grace period
+        });
+      },
+
       tick: (delta: number) => {
         const state = get();
         
+        if (state.isGameOver) return;
+
         // 1. Update active events
         const updatedEvents = state.activeEvents
           .map((event) => ({
@@ -331,8 +372,11 @@ export const useGameStore = create<GameStore>()(
           .reduce((acc, u) => acc * u.multiplier, 1);
         
         const VIRAL_CHANCE = 0.01 * viralFrequencyMultiplier;
+        const CRISIS_CHANCE = 0.005;
         const newEvents = [...updatedEvents];
+        let updatedSubredditsForHealth = [...state.subreddits];
         
+        // Positive Viral Events
         if (Math.random() < VIRAL_CHANCE * delta) {
           const unlockedSubs = state.subreddits.filter(s => s.unlocked && !newEvents.some(e => e.subredditId === s.id));
           if (unlockedSubs.length > 0) {
@@ -351,7 +395,7 @@ export const useGameStore = create<GameStore>()(
             // Inverse scaling formula: favors lower tier
             const maxBoost = Math.max(2, Math.floor(20 / randomSub.tier));
             const randomBoost = Math.floor(Math.random() * (maxBoost - 1)) + 2;
-            const finalMultiplier = Math.round(randomBoost * viralPowerMultiplier);
+            const finalMultiplier = Math.min(10, Math.round(randomBoost * viralPowerMultiplier));
 
             newEvents.push({
               id: eventId,
@@ -360,6 +404,45 @@ export const useGameStore = create<GameStore>()(
               multiplier: finalMultiplier,
               duration: baseDuration * viralDurationMultiplier,
               remainingTime: baseDuration * viralDurationMultiplier,
+              isNegative: false,
+              type: 'local',
+            });
+          }
+        }
+
+        // Negative Crisis Events
+        if (Math.random() < CRISIS_CHANCE * delta) {
+          const randomCrisis = NEGATIVE_EVENTS[Math.floor(Math.random() * NEGATIVE_EVENTS.length)];
+          const eventId = `crisis-${Date.now()}`;
+          
+          let targetSubId: string | undefined;
+          if (randomCrisis.type === 'local') {
+            const unlockedSubs = state.subreddits.filter(s => s.unlocked);
+            if (unlockedSubs.length > 0) {
+              const targetSub = unlockedSubs[Math.floor(Math.random() * unlockedSubs.length)];
+              targetSubId = targetSub.id;
+              
+              // Apply instant health loss
+              if (randomCrisis.healthLoss) {
+                updatedSubredditsForHealth = updatedSubredditsForHealth.map(s => 
+                  s.id === targetSubId ? { ...s, health: Math.max(0, s.health - (randomCrisis.healthLoss || 0)) } : s
+                );
+              }
+            }
+          }
+
+          if (randomCrisis.type === 'global' || targetSubId) {
+            newEvents.push({
+              id: eventId,
+              name: randomCrisis.name,
+              description: randomCrisis.description,
+              subredditId: targetSubId,
+              multiplier: randomCrisis.multiplier,
+              duration: randomCrisis.duration,
+              remainingTime: randomCrisis.duration,
+              isNegative: true,
+              type: randomCrisis.type,
+              healthLoss: randomCrisis.healthLoss,
             });
           }
         }
@@ -379,7 +462,7 @@ export const useGameStore = create<GameStore>()(
 
         // 4. Calculate passive income with seasonality, fatigue, and health
         let passiveIncome = 0;
-        const updatedSubreddits = state.subreddits.map(sub => {
+        const updatedSubreddits = updatedSubredditsForHealth.map(sub => {
           // Fatigue decay: 5% per second
           const newFatigue = Math.max(0, (sub.fatigue || 0) - 0.05 * delta);
           
@@ -405,8 +488,11 @@ export const useGameStore = create<GameStore>()(
             });
             const synergyMultiplier = 1 + (synergyPosts.length * 0.05);
 
-            // Note: subEventMultiplier is no longer applied to passive income, only to manual posts
-            passiveIncome += sub.karmaPerSecond * sub.level * sub.multiplier * activityScore * activityMultiplier * fatigueMultiplier * synergyMultiplier * healthMultiplier * delta;
+            // Local event multipliers (including negative ones)
+            const localEvents = newEvents.filter(e => e.subredditId === sub.id);
+            const localMultiplier = localEvents.reduce((acc, e) => acc * e.multiplier, 1);
+
+            passiveIncome += sub.karmaPerSecond * sub.level * sub.multiplier * activityScore * activityMultiplier * fatigueMultiplier * synergyMultiplier * healthMultiplier * localMultiplier * delta;
           }
           
           return { ...sub, fatigue: newFatigue, health: newHealth };
@@ -417,10 +503,21 @@ export const useGameStore = create<GameStore>()(
           .reduce((acc, u) => acc * u.multiplier, 1);
 
         const globalMultiplier = newEvents
-          .filter(e => !e.subredditId)
+          .filter(e => e.type === 'global')
           .reduce((acc, event) => acc * event.multiplier, 1);
 
         const totalIncome = (passiveIncome + postIncome) * passiveUpgradeMultiplier * globalMultiplier;
+
+        // 5. Check for Game Over (KPS = 0)
+        const isKpsZero = totalIncome <= 0;
+        const hasUnlockedSub = state.subreddits.some(s => s.unlocked && s.level > 0);
+        
+        let newIsGameOver = state.isGameOver;
+        let newGracePeriod = Math.max(0, (state.gracePeriod || 0) - delta);
+
+        if (hasUnlockedSub && isKpsZero && newGracePeriod <= 0 && !state.isGameOver) {
+          newIsGameOver = true;
+        }
 
         set((state: GameState) => {
           const lifetimeKarma = state.lifetimeKarma + totalIncome;
@@ -438,6 +535,8 @@ export const useGameStore = create<GameStore>()(
             activePosts: updatedPosts,
             clickEnergy: newEnergy,
             lastTick: now,
+            isGameOver: newIsGameOver,
+            gracePeriod: newGracePeriod,
           };
         });
       },
@@ -499,6 +598,8 @@ export const useGameStore = create<GameStore>()(
           upgrades: mergedUpgrades,
           activePosts: state.activePosts || [],
           clickEnergy: state.clickEnergy !== undefined ? state.clickEnergy : 50,
+          isGameOver: state.isGameOver || false,
+          gracePeriod: state.gracePeriod || 0,
         };
       },
     }

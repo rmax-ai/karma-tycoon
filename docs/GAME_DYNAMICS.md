@@ -64,13 +64,38 @@ As subreddits grow (higher levels), they attract more "Spam" and "Trolls," which
 - **Moderators**: A new type of upgrade. Hiring moderators provides passive health regeneration.
 - **Manual Action**: Players can occasionally "Clear Mod Queue" (a mini-game or simple click) to instantly boost health.
 
-## 6. Subreddit Synergies
+## 6. Viral Events & Crises
+
+The game features random events that can significantly boost or hinder your progress.
+
+### Viral Opportunities (Positive)
+- **Trigger**: 1% chance per second (modified by upgrades).
+- **Effect**: Provides a significant KPS multiplier (2x to 20x) to a specific subreddit for a limited time.
+
+### Crises (Negative)
+- **Trigger**: 0.5% chance per second.
+- **Variants**:
+    - **Subreddit Drama**: 0.5x multiplier (Local).
+    - **Mod Abuse**: 0.2x multiplier and instant 40% health loss (Local).
+    - **Brigaded!**: 0.1x multiplier (Local).
+    - **Algorithm Suppression**: 0.5x multiplier (Global).
+    - **Server Outage**: 0.05x multiplier (Global).
+
+## 7. Game Over (Stagnation)
+
+If your total Karma Per Second (KPS) reaches 0, your influence begins to fade.
+
+- **Trigger**: Total KPS (Passive + Active Posts) is 0, and at least one subreddit is unlocked.
+- **Grace Period**: Upon reaching 0 KPS, you are given a 60-second grace period (if you choose to "Continue") to create new content and restore growth.
+- **Consequence**: If the grace period expires and KPS is still 0, the game enters a "Stagnation" state where you must either reset your progress or attempt to recover.
+
+## 8. Subreddit Synergies
 
 Certain subreddits have natural affinities.
 - **Cross-Pollination**: A viral post in `r/gaming` might provide a 15% activity boost to `r/technology` for 10 minutes.
 - **Network Effect**: Owning all subreddits in a specific category (e.g., "Entertainment") provides a global multiplier to that category.
 
-## 7. Quality vs. Quantity
+## 9. Quality vs. Quantity
 
 The "Create Content" action can be modified by player behavior:
 - **Quick Post**: Single click. Consumes 1 Energy.
