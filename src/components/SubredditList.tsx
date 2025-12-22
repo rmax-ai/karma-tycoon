@@ -26,7 +26,7 @@ export const SubredditList = () => {
   const visibleSubreddits = subreddits.filter(sub => sub.tier <= currentTier.tier);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-8">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {visibleSubreddits.map((sub) => {
         const cost = calculateCost(sub);
         const canAfford = totalKarma >= cost;

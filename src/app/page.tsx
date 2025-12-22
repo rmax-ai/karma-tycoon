@@ -6,6 +6,7 @@ import { UpgradesList } from '@/components/UpgradesList';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import { ViralEventPopup } from '@/components/ViralEventPopup';
 import { MascotAnimations } from '@/components/MascotAnimations';
+import { CollapsibleSection } from '@/components/CollapsibleSection';
 
 export default function Home() {
   // Initialize the game loop
@@ -25,15 +26,13 @@ export default function Home() {
       <div className="space-y-8">
         <Dashboard />
         
-        <section>
-          <h2 className="text-2xl font-bold mb-4 px-1">Global Upgrades</h2>
+        <CollapsibleSection title="Global Upgrades">
           <UpgradesList />
-        </section>
+        </CollapsibleSection>
 
-        <section>
-          <h2 className="text-2xl font-bold mb-4 px-1">Subreddits</h2>
+        <CollapsibleSection title="Subreddits">
           <SubredditList />
-        </section>
+        </CollapsibleSection>
       </div>
       <ViralEventPopup />
       <MascotAnimations />
