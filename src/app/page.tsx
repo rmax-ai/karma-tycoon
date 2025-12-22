@@ -5,7 +5,7 @@ import { SubredditList } from '@/components/SubredditList';
 import { UpgradesList } from '@/components/UpgradesList';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import { ViralEventPopup } from '@/components/ViralEventPopup';
-import { CatAnimation } from '@/components/CatAnimation';
+import { MascotAnimations } from '@/components/MascotAnimations';
 
 export default function Home() {
   // Initialize the game loop
@@ -36,7 +36,7 @@ export default function Home() {
         </section>
       </div>
       <ViralEventPopup />
-      <CatAnimation />
+      <MascotAnimations />
     </main>
   );
 }
