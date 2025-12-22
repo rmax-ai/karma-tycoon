@@ -45,7 +45,7 @@ Posting too frequently in the same subreddit causes "Algorithm Fatigue," reducin
 
 As subreddits grow (higher levels), they attract more "Spam" and "Trolls," which negatively impact KPS.
 
-- **Community Health**: A percentage (0-100%). If health drops below 50%, KPS is penalized.
+- **Community Health**: A percentage (0-100%). If health drops below 75%, KPS is penalized. The penalty is linear (e.g., 37.5% health results in a 50% KPS reduction). This penalty applies to both passive income and the potential of new posts.
 - **Moderators**: A new type of upgrade. Hiring moderators provides passive health regeneration.
 - **Manual Action**: Players can occasionally "Clear Mod Queue" (a mini-game or simple click) to instantly boost health.
 

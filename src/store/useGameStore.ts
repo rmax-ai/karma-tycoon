@@ -199,7 +199,10 @@ export const useGameStore = create<GameStore>()(
         const fatigueMultiplier = 1 - (randomSub.fatigue || 0);
         const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (Date.now() / 1000)) / randomSub.activityPeriod + randomSub.activityPhase);
         
-        const finalPeakKps = basePeakKps * fatigueMultiplier * activityMultiplier * (0.8 + Math.random() * 0.7) * qualityMultiplier; // Random quality factor
+        // Health penalty: linear drop below 75% health
+        const healthMultiplier = randomSub.health < 75 ? (randomSub.health / 75) : 1;
+        
+        const finalPeakKps = basePeakKps * fatigueMultiplier * activityMultiplier * healthMultiplier * (0.8 + Math.random() * 0.7) * qualityMultiplier; // Random quality factor
 
         const newPost: Post = {
           id: `post-${Date.now()}-${Math.random()}`,
@@ -371,8 +374,8 @@ export const useGameStore = create<GameStore>()(
             const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
             const fatigueMultiplier = 1 - newFatigue;
             
-            // Health penalty: linear drop below 50% health
-            const healthMultiplier = newHealth < 50 ? (newHealth / 50) : 1;
+            // Health penalty: linear drop below 75% health
+            const healthMultiplier = newHealth < 75 ? (newHealth / 75) : 1;
 
             // Synergy: +5% for each active post in the same category
             const synergyPosts = updatedPosts.filter(p => {
