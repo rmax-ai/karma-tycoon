@@ -11,6 +11,7 @@ import { CelebrationOverlay } from '@/components/CelebrationOverlay';
 import { GameOverModal } from '@/components/GameOverModal';
 import { ActionOverlay } from '@/components/ActionOverlay';
 import { WelcomeModal } from '@/components/WelcomeModal';
+import { WelcomeTour } from '@/components/WelcomeTour';
 import { Header } from '@/components/Header';
 
 export default function Home() {
@@ -20,6 +21,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background p-4 md:p-8 lg:p-12 max-w-7xl mx-auto">
       <WelcomeModal />
+      <WelcomeTour />
       <Header />
 
       <div className="space-y-8">

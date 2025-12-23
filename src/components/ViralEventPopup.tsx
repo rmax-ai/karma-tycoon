@@ -49,6 +49,7 @@ export const ViralEventPopup = () => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
           className="fixed bottom-4 right-4 z-50 w-full max-w-sm"
+          data-tour="viral-events"
         >
           <Card className={cn(
             "shadow-2xl overflow-hidden border-2",

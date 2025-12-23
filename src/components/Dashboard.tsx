@@ -77,7 +77,7 @@ export const Dashboard = () => {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <Card className="col-span-full lg:col-span-2">
+      <Card className="col-span-full lg:col-span-2" data-tour="dashboard">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-2xl font-bold">Karma Dashboard</CardTitle>
           <div className="flex items-center gap-2">
@@ -86,6 +86,7 @@ export const Dashboard = () => {
               size="sm" 
               className="gap-2"
               onClick={() => setIsTierModalOpen(true)}
+              data-tour="tier-info"
             >
               <Trophy className="w-4 h-4 text-orange-500" />
               Tier {currentTier.tier}
@@ -132,6 +133,7 @@ export const Dashboard = () => {
                 onClick={handleCreateContent}
                 disabled={activePosts.length >= currentTier.maxPostSlots || !!activeAction}
                 data-testid="create-content-btn"
+                data-tour="create-content"
               >
                 <MousePointer2 className="mr-2 h-6 w-6" />
                 {activePosts.length >= currentTier.maxPostSlots

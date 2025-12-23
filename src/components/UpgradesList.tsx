@@ -30,7 +30,7 @@ export const UpgradesList = () => {
   const visibleUpgrades = upgrades.filter(upgrade => upgrade.tier <= currentTier.tier);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-tour="upgrades">
       {visibleUpgrades.map((upgrade: GlobalUpgrade) => (
         <motion.div
           key={upgrade.id}

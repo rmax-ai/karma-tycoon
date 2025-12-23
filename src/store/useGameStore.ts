@@ -105,6 +105,9 @@ export interface GameState {
   hasSeenWelcome: boolean;
   gameStartedAt: number;
   totalPostsCreated: number;
+  hasCompletedTour: boolean;
+  isTourActive: boolean;
+  currentTourStep: number;
 }
 
 export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue';
@@ -128,6 +131,11 @@ export interface GameActions {
   resetGame: () => void;
   continueGame: () => void;
   completeWelcome: (username: string) => void;
+  startTour: () => void;
+  nextTourStep: () => void;
+  prevTourStep: () => void;
+  completeTour: () => void;
+  skipTour: () => void;
 }
 
 export type GameStore = GameState & GameActions & { celebrations: Celebration[] };
@@ -220,6 +228,9 @@ export const useGameStore = create<GameStore>()(
       hasSeenWelcome: false,
       gameStartedAt: Date.now(),
       totalPostsCreated: 0,
+      hasCompletedTour: false,
+      isTourActive: false,
+      currentTourStep: 0,
 
       triggerCelebration: (type: CelebrationType) => {
         const id = `celebration-${Date.now()}-${Math.random()}`;
@@ -430,6 +441,9 @@ export const useGameStore = create<GameStore>()(
           hasSeenWelcome: false,
           gameStartedAt: Date.now(),
           totalPostsCreated: 0,
+          hasCompletedTour: false,
+          isTourActive: false,
+          currentTourStep: 0,
         });
         if (typeof window !== 'undefined') {
           window.location.reload();
@@ -450,6 +464,26 @@ export const useGameStore = create<GameStore>()(
           isGameOver: false,
           gracePeriod: 60, // 60 seconds grace period
         });
+      },
+
+      startTour: () => {
+        set({ isTourActive: true, currentTourStep: 0 });
+      },
+
+      nextTourStep: () => {
+        set((state) => ({ currentTourStep: state.currentTourStep + 1 }));
+      },
+
+      prevTourStep: () => {
+        set((state) => ({ currentTourStep: Math.max(0, state.currentTourStep - 1) }));
+      },
+
+      completeTour: () => {
+        set({ isTourActive: false, hasCompletedTour: true });
+      },
+
+      skipTour: () => {
+        set({ isTourActive: false, hasCompletedTour: true });
       },
 
       tick: (delta: number) => {
@@ -745,6 +779,7 @@ export const useGameStore = create<GameStore>()(
           username: state.username !== undefined ? state.username : null,
           gameStartedAt: state.gameStartedAt !== undefined ? state.gameStartedAt : Date.now(),
           totalPostsCreated: state.totalPostsCreated !== undefined ? state.totalPostsCreated : 0,
+          hasCompletedTour: state.hasCompletedTour !== undefined ? state.hasCompletedTour : false,
         };
       },
       partialize: (state) => ({
@@ -766,6 +801,7 @@ export const useGameStore = create<GameStore>()(
         hasSeenWelcome: state.hasSeenWelcome,
         gameStartedAt: state.gameStartedAt,
         totalPostsCreated: state.totalPostsCreated,
+        hasCompletedTour: state.hasCompletedTour,
       }),
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {

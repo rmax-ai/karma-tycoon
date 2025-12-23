@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 export const WelcomeModal = () => {
   const hasSeenWelcome = useGameStore((state) => state.hasSeenWelcome);
   const completeWelcome = useGameStore((state) => state.completeWelcome);
+  const startTour = useGameStore((state) => state.startTour);
+  const hasCompletedTour = useGameStore((state) => state.hasCompletedTour);
   const [randomName, setRandomName] = useState('');
 
   useEffect(() => {
@@ -21,6 +23,9 @@ export const WelcomeModal = () => {
 
   const handleJoin = () => {
     completeWelcome(randomName);
+    if (!hasCompletedTour) {
+      startTour();
+    }
   };
 
   const handleRegenerate = () => {
