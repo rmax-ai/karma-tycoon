@@ -7,10 +7,15 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatKarma(value: number): string {
   if (value >= 1000000) {
-    return (value / 1000000).toFixed(1) + 'M';
+    const formatted = (value / 1000000).toFixed(1);
+    return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'M';
   }
   if (value >= 1000) {
-    return (value / 1000).toFixed(1) + 'K';
+    const formatted = (value / 1000).toFixed(1);
+    return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'K';
   }
-  return value.toFixed(1);
+  if (value >= 100) {
+    return Math.floor(value).toLocaleString();
+  }
+  return value.toFixed(1).replace(/\.0$/, '');
 }

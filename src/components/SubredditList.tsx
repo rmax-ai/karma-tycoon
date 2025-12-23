@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Users, ArrowUpCircle, Zap, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatKarma } from '@/lib/utils';
 
 export const SubredditList = () => {
   const subreddits = useGameStore((state) => state.subreddits);
@@ -17,6 +18,7 @@ export const SubredditList = () => {
   const activeEvents = useGameStore((state) => state.activeEvents);
   const activePosts = useGameStore((state) => state.activePosts);
   const addKarma = useGameStore((state) => state.addKarma);
+  const breakdown = useGameStore((state) => state.currentKpsBreakdown);
 
   const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
 
@@ -36,17 +38,11 @@ export const SubredditList = () => {
         const viralEvent = activeEvents.find(e => e.subredditId === sub.id);
         const subEventMultiplier = viralEvent ? viralEvent.multiplier : 1;
         
-        const now = Date.now();
-        const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
-        const fatigueMultiplier = 1 - (sub.fatigue || 0);
-        
-        // Activity-based decay
-        const activePostsInSub = activePosts.filter(p => p.subredditId === sub.id);
-        const activityScore = activePostsInSub.length === 0 ? 0 : activePostsInSub.length === 1 ? 0.5 : 1;
-        
-        const kps = sub.karmaPerSecond * sub.level * sub.multiplier * activityScore * activityMultiplier * fatigueMultiplier;
+        const subBreakdown = breakdown.subreddits.find(s => s.id === sub.id);
+        const kps = subBreakdown ? subBreakdown.finalKps : 0;
         const isViral = subEventMultiplier > 1;
 
+        const activityMultiplier = subBreakdown ? subBreakdown.activityMultiplier : 1;
         const activityLevel = activityMultiplier > 1.3 ? 'High' : activityMultiplier < 0.7 ? 'Low' : 'Normal';
         const fatigueLevel = (sub.fatigue || 0) * 100;
         const health = sub.health || 100;
@@ -89,7 +85,7 @@ export const SubredditList = () => {
                   <span className="text-muted-foreground">Income:</span>
                   <div className="flex flex-col items-end">
                     <span className={`font-semibold ${isViral ? 'text-orange-600' : ''}`} data-testid={`subreddit-kps-${sub.id}`}>
-                      {kps.toFixed(1)} KPS
+                      {formatKarma(kps)} KPS
                     </span>
                     {isViral && (
                       <span className="text-[10px] font-bold text-orange-500 uppercase">
@@ -160,7 +156,7 @@ export const SubredditList = () => {
                       data-testid={`subreddit-upgrade-btn-${sub.id}`}
                     >
                       <ArrowUpCircle className="mr-1 h-3 w-3" />
-                      {sub.level === 0 ? 'Unlock' : 'Level Up'} — {cost.toLocaleString()}
+                      {sub.level === 0 ? 'Unlock' : 'Level Up'} — {formatKarma(cost)}
                     </Button>
                   </div>
                 </div>

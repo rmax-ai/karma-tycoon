@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy, Star, Zap, Globe, Rocket } from 'lucide-react';
 import { TIER_THRESHOLDS } from '@/store/useGameStore';
 import { Button } from '@/components/ui/button';
+import { formatKarma } from '@/lib/utils';
 
 interface TierInfoModalProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export const TierInfoModal = ({ isOpen, onClose, currentTier }: TierInfoModalPro
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {tier.minKarma.toLocaleString()} - {tier.maxKarma.toLocaleString()} Lifetime Karma
+                    {formatKarma(tier.minKarma)} - {formatKarma(tier.maxKarma)} Lifetime Karma
                   </p>
                 </div>
               ))}

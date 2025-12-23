@@ -22,12 +22,14 @@ interface FloatingText {
 export const Dashboard = () => {
   const totalKarma = useGameStore((state) => state.totalKarma);
   const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
+  const lastKarmaUpdate = useGameStore((state) => state.lastKarmaUpdate);
   const startCrafting = useGameStore((state) => state.startCrafting);
   const crafting = useGameStore((state) => state.crafting);
   const subreddits = useGameStore((state) => state.subreddits);
   const activeEvents = useGameStore((state) => state.activeEvents);
   const activePosts = useGameStore((state) => state.activePosts);
   const upgrades = useGameStore((state) => state.upgrades);
+  const breakdown = useGameStore((state) => state.currentKpsBreakdown);
 
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
@@ -35,17 +37,6 @@ export const Dashboard = () => {
   // Tier Logic
   const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
   const nextTier = TIER_THRESHOLDS.find(t => t.tier === currentTier.tier + 1);
-
-  // Calculate KPS using centralized logic
-  const now = Date.now();
-  const breakdown = useMemo(() => calculateKpsBreakdown(
-    subreddits,
-    activePosts,
-    upgrades,
-    activeEvents,
-    currentTier,
-    now
-  ), [subreddits, activePosts, upgrades, activeEvents, currentTier, now]);
 
   const { totalKps, postKps, passiveUpgradeMultiplier, globalMultiplier } = breakdown;
 
@@ -113,7 +104,7 @@ export const Dashboard = () => {
                 className="text-5xl font-extrabold text-orange-600 tabular-nums"
                 data-testid="total-karma"
               >
-                {Math.floor(totalKarma).toLocaleString()}
+                {formatKarma(totalKarma)}
               </motion.h2>
             </div>
             
@@ -124,7 +115,7 @@ export const Dashboard = () => {
               </div>
               <Progress value={tierProgress} className="h-2" />
               <p className="text-[10px] text-center text-muted-foreground">
-                {Math.floor(lifetimeKarma).toLocaleString()} / {currentTier.maxKarma.toLocaleString()} Lifetime Karma
+                {formatKarma(lifetimeKarma)} / {formatKarma(currentTier.maxKarma)} Lifetime Karma
               </p>
             </div>
 
@@ -203,9 +194,11 @@ export const Dashboard = () => {
                 ) : (
                   activePosts.map((post) => {
                     const sub = subreddits.find(s => s.id === post.subredditId);
+                    const now = Date.now();
                     const t = (now - post.createdAt) / 1000;
+                    const tThrottled = Math.max(0, (lastKarmaUpdate - post.createdAt) / 1000);
                     const progress = (t / post.duration) * 100;
-                    const ratio = t / post.peakTime;
+                    const ratio = tThrottled / post.peakTime;
                     const currentKps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
                     
                     return (

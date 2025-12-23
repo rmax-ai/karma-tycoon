@@ -14,21 +14,8 @@ import { Info, Zap, Heart, BatteryLow, Users, Flame, CloudSun, TrendingUp } from
 import { cn } from '@/lib/utils';
 
 export const KpsBreakdown = () => {
-  const subreddits = useGameStore((state) => state.subreddits);
-  const activeEvents = useGameStore((state) => state.activeEvents);
+  const breakdown = useGameStore((state) => state.currentKpsBreakdown);
   const activePosts = useGameStore((state) => state.activePosts);
-  const upgrades = useGameStore((state) => state.upgrades);
-  const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
-
-  const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
-  
-  const breakdown = calculateKpsBreakdown(
-    subreddits,
-    activePosts,
-    upgrades,
-    activeEvents,
-    currentTier
-  );
 
   return (
     <Popover>

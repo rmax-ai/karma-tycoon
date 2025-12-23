@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { calculateKpsBreakdown, KpsBreakdownData } from '@/lib/game-logic';
 
 export interface Subreddit {
   id: string;
@@ -80,6 +81,8 @@ export interface GameState {
   activePosts: Post[];
   clickEnergy: number;
   lastTick: number;
+  lastKarmaUpdate: number;
+  karmaAccumulator: number;
   isGameOver: boolean;
   gracePeriod: number;
   crafting: {
@@ -88,6 +91,7 @@ export interface GameState {
     qualityMultiplier: number;
     subredditId?: string;
   } | null;
+  currentKpsBreakdown: KpsBreakdownData;
 }
 
 export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue';
@@ -186,9 +190,18 @@ export const useGameStore = create<GameStore>()(
       clickEnergy: 50,
       celebrations: [],
       lastTick: Date.now(),
+      lastKarmaUpdate: Date.now(),
+      karmaAccumulator: 0,
       isGameOver: false,
       gracePeriod: 0,
       crafting: null,
+      currentKpsBreakdown: {
+        subreddits: [],
+        passiveUpgradeMultiplier: 1,
+        globalMultiplier: 1,
+        postKps: 0,
+        totalKps: 0,
+      },
 
       triggerCelebration: (type: CelebrationType) => {
         const id = `celebration-${Date.now()}-${Math.random()}`;
@@ -376,9 +389,18 @@ export const useGameStore = create<GameStore>()(
           activeEvents: [],
           activePosts: [],
           clickEnergy: 50,
+          lastKarmaUpdate: Date.now(),
+          karmaAccumulator: 0,
           isGameOver: false,
           gracePeriod: 0,
           crafting: null,
+          currentKpsBreakdown: {
+            subreddits: [],
+            passiveUpgradeMultiplier: 1,
+            globalMultiplier: 1,
+            postKps: 0,
+            totalKps: 0,
+          },
         });
       },
 
@@ -608,15 +630,46 @@ export const useGameStore = create<GameStore>()(
         }
 
         set((state: GameState) => {
-          const lifetimeKarma = state.lifetimeKarma + totalIncome;
-          const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
+          const newAccumulator = (state.karmaAccumulator || 0) + totalIncome;
+          const timeSinceLastUpdate = now - (state.lastKarmaUpdate || now);
+          
+          let nextTotalKarma = state.totalKarma;
+          let nextLifetimeKarma = state.lifetimeKarma;
+          let nextKarmaAccumulator = newAccumulator;
+          let nextLastKarmaUpdate = state.lastKarmaUpdate || now;
+
+          let nextKpsBreakdown = state.currentKpsBreakdown;
+
+          // Update karma values and KPS breakdown only every second
+          if (timeSinceLastUpdate >= 1000) {
+            nextTotalKarma += newAccumulator;
+            nextLifetimeKarma += newAccumulator;
+            nextKarmaAccumulator = 0;
+            nextLastKarmaUpdate = now;
+
+            const currentTierForKps = TIER_THRESHOLDS.find(t => nextLifetimeKarma >= t.minKarma && nextLifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
+            
+            nextKpsBreakdown = calculateKpsBreakdown(
+              updatedSubreddits,
+              updatedPosts,
+              state.upgrades,
+              newEvents,
+              currentTierForKps,
+              now
+            );
+          }
+
+          const currentTier = TIER_THRESHOLDS.find(t => nextLifetimeKarma >= t.minKarma && nextLifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
           
           const energyGain = delta / currentTier.rechargeRate;
           const newEnergy = Math.min(currentTier.maxEnergy, state.clickEnergy + energyGain);
 
           return {
-            totalKarma: state.totalKarma + totalIncome,
-            lifetimeKarma,
+            totalKarma: nextTotalKarma,
+            lifetimeKarma: nextLifetimeKarma,
+            karmaAccumulator: nextKarmaAccumulator,
+            lastKarmaUpdate: nextLastKarmaUpdate,
+            currentKpsBreakdown: nextKpsBreakdown,
             subreddits: updatedSubreddits,
             activeEvents: newEvents,
             activePosts: updatedPosts,

@@ -10,7 +10,7 @@ export const useGameLoop = () => {
     const now = Date.now();
     const delta = (now - lastTickRef.current) / 1000; // delta in seconds
 
-    if (delta >= 0.1) { // Tick at most every 100ms to avoid excessive updates, but smooth enough
+    if (delta >= 0.016) { // Tick at ~60fps for smooth UI, while karma updates are throttled in the store
       tick(delta);
       lastTickRef.current = now;
     }

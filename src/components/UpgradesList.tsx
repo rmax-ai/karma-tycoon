@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Zap, TrendingUp, MousePointer2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatKarma } from '@/lib/utils';
 
 export const UpgradesList = () => {
   const { upgrades, totalKarma, lifetimeKarma, purchaseUpgrade } = useGameStore();
@@ -54,7 +55,7 @@ export const UpgradesList = () => {
             <CardContent>
               <div className="flex justify-between items-center">
                 <span className="font-mono font-bold text-orange-500">
-                  {upgrade.cost.toLocaleString()} Karma
+                  {formatKarma(upgrade.cost)} Karma
                 </span>
                 <Button
                   size="sm"
