@@ -65,11 +65,11 @@ export interface TierInfo {
 }
 
 export const TIER_THRESHOLDS: TierInfo[] = [
-  { tier: 1, name: 'The Basics', minKarma: 0, maxKarma: 1000, maxPostSlots: 3, maxEnergy: 50, rechargeRate: 1, clickPowerMultiplier: 1 },
-  { tier: 2, name: 'Community Management', minKarma: 1000, maxKarma: 10000, maxPostSlots: 5, maxEnergy: 30, rechargeRate: 10, clickPowerMultiplier: 15 },
-  { tier: 3, name: 'Viral Growth', minKarma: 10000, maxKarma: 100000, maxPostSlots: 10, maxEnergy: 15, rechargeRate: 60, clickPowerMultiplier: 200 },
-  { tier: 4, name: 'Platform Dominance', minKarma: 100000, maxKarma: 1000000, maxPostSlots: 20, maxEnergy: 5, rechargeRate: 300, clickPowerMultiplier: 3000 },
-  { tier: 5, name: 'The Front Page', minKarma: 1000000, maxKarma: 10000000, maxPostSlots: 50, maxEnergy: 1, rechargeRate: 1200, clickPowerMultiplier: 50000 },
+  { tier: 1, name: 'The Basics', minKarma: 0, maxKarma: 1e3, maxPostSlots: 3, maxEnergy: 50, rechargeRate: 1, clickPowerMultiplier: 1 },
+  { tier: 2, name: 'Community Management', minKarma: 1e3, maxKarma: 1e5, maxPostSlots: 5, maxEnergy: 30, rechargeRate: 10, clickPowerMultiplier: 20 },
+  { tier: 3, name: 'Viral Growth', minKarma: 1e5, maxKarma: 1e8, maxPostSlots: 10, maxEnergy: 15, rechargeRate: 60, clickPowerMultiplier: 500 },
+  { tier: 4, name: 'Platform Dominance', minKarma: 1e8, maxKarma: 1e13, maxPostSlots: 20, maxEnergy: 5, rechargeRate: 300, clickPowerMultiplier: 25000 },
+  { tier: 5, name: 'The Front Page', minKarma: 1e13, maxKarma: 1e21, maxPostSlots: 50, maxEnergy: 1, rechargeRate: 1200, clickPowerMultiplier: 1000000 },
 ];
 
 export interface GameState {
@@ -119,55 +119,55 @@ export interface GameActions {
 export type GameStore = GameState & GameActions & { celebrations: Celebration[] };
 
 const INITIAL_SUBREDDITS: Subreddit[] = [
-  // Tier 1
+  // Tier 1 (0 - 1k)
   { id: 'r-funny', name: 'r/funny', subscribers: 0, karmaPerSecond: 1, level: 0, baseCost: 10, multiplier: 1, unlocked: true, tier: 1, activityPeriod: 3600, activityPhase: 0, fatigue: 0, category: 'Entertainment', health: 100 },
   { id: 'r-pics', name: 'r/pics', subscribers: 0, karmaPerSecond: 5, level: 0, baseCost: 100, multiplier: 1, unlocked: false, tier: 1, activityPeriod: 7200, activityPhase: Math.PI / 4, fatigue: 0, category: 'Entertainment', health: 100 },
   { id: 'r-gaming', name: 'r/gaming', subscribers: 0, karmaPerSecond: 20, level: 0, baseCost: 500, multiplier: 1, unlocked: false, tier: 1, activityPeriod: 14400, activityPhase: Math.PI / 2, fatigue: 0, category: 'Gaming', health: 100 },
-  // Tier 2
-  { id: 'r-aww', name: 'r/aww', subscribers: 0, karmaPerSecond: 75, level: 0, baseCost: 2000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 3600, activityPhase: Math.PI, fatigue: 0, category: 'Entertainment', health: 100 },
-  { id: 'r-science', name: 'r/science', subscribers: 0, karmaPerSecond: 150, level: 0, baseCost: 5000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 28800, activityPhase: 0, fatigue: 0, category: 'Education', health: 100 },
-  { id: 'r-worldnews', name: 'r/worldnews', subscribers: 0, karmaPerSecond: 300, level: 0, baseCost: 10000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 1800, activityPhase: Math.PI / 3, fatigue: 0, category: 'News', health: 100 },
-  // Tier 3
-  { id: 'r-movies', name: 'r/movies', subscribers: 0, karmaPerSecond: 800, level: 0, baseCost: 25000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 21600, activityPhase: Math.PI / 6, fatigue: 0, category: 'Entertainment', health: 100 },
-  { id: 'r-music', name: 'r/music', subscribers: 0, karmaPerSecond: 1500, level: 0, baseCost: 50000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 10800, activityPhase: Math.PI / 8, fatigue: 0, category: 'Entertainment', health: 100 },
-  { id: 'r-technology', name: 'r/technology', subscribers: 0, karmaPerSecond: 3000, level: 0, baseCost: 100000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 43200, activityPhase: 0, fatigue: 0, category: 'Tech', health: 100 },
-  // Tier 4
-  { id: 'r-todayilearned', name: 'r/todayilearned', subscribers: 0, karmaPerSecond: 8000, level: 0, baseCost: 250000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 86400, activityPhase: Math.PI / 2, fatigue: 0, category: 'Education', health: 100 },
-  { id: 'r-askreddit', name: 'r/askreddit', subscribers: 0, karmaPerSecond: 15000, level: 0, baseCost: 500000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 3600, activityPhase: 0, fatigue: 0, category: 'Social', health: 100 },
-  { id: 'r-showerthoughts', name: 'r/showerthoughts', subscribers: 0, karmaPerSecond: 30000, level: 0, baseCost: 1000000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 7200, activityPhase: Math.PI / 4, fatigue: 0, category: 'Social', health: 100 },
-  // Tier 5
-  { id: 'r-wallstreetbets', name: 'r/wallstreetbets', subscribers: 0, karmaPerSecond: 80000, level: 0, baseCost: 2500000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 14400, activityPhase: Math.PI / 2, fatigue: 0, category: 'Finance', health: 100 },
-  { id: 'r-cryptocurrency', name: 'r/cryptocurrency', subscribers: 0, karmaPerSecond: 150000, level: 0, baseCost: 5000000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 28800, activityPhase: 0, fatigue: 0, category: 'Finance', health: 100 },
-  { id: 'r-announcements', name: 'r/announcements', subscribers: 0, karmaPerSecond: 500000, level: 0, baseCost: 10000000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 86400, activityPhase: 0, fatigue: 0, category: 'Social', health: 100 },
+  // Tier 2 (1k - 100k)
+  { id: 'r-aww', name: 'r/aww', subscribers: 0, karmaPerSecond: 100, level: 0, baseCost: 2000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 3600, activityPhase: Math.PI, fatigue: 0, category: 'Entertainment', health: 100 },
+  { id: 'r-science', name: 'r/science', subscribers: 0, karmaPerSecond: 400, level: 0, baseCost: 10000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 28800, activityPhase: 0, fatigue: 0, category: 'Education', health: 100 },
+  { id: 'r-worldnews', name: 'r/worldnews', subscribers: 0, karmaPerSecond: 1500, level: 0, baseCost: 40000, multiplier: 1, unlocked: false, tier: 2, activityPeriod: 1800, activityPhase: Math.PI / 3, fatigue: 0, category: 'News', health: 100 },
+  // Tier 3 (100k - 100M)
+  { id: 'r-movies', name: 'r/movies', subscribers: 0, karmaPerSecond: 10000, level: 0, baseCost: 500000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 21600, activityPhase: Math.PI / 6, fatigue: 0, category: 'Entertainment', health: 100 },
+  { id: 'r-music', name: 'r/music', subscribers: 0, karmaPerSecond: 40000, level: 0, baseCost: 2000000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 10800, activityPhase: Math.PI / 8, fatigue: 0, category: 'Entertainment', health: 100 },
+  { id: 'r-technology', name: 'r/technology', subscribers: 0, karmaPerSecond: 200000, level: 0, baseCost: 10000000, multiplier: 1, unlocked: false, tier: 3, activityPeriod: 43200, activityPhase: 0, fatigue: 0, category: 'Tech', health: 100 },
+  // Tier 4 (100M - 10T)
+  { id: 'r-todayilearned', name: 'r/todayilearned', subscribers: 0, karmaPerSecond: 5000000, level: 0, baseCost: 500000000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 86400, activityPhase: Math.PI / 2, fatigue: 0, category: 'Education', health: 100 },
+  { id: 'r-askreddit', name: 'r/askreddit', subscribers: 0, karmaPerSecond: 20000000, level: 0, baseCost: 2000000000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 3600, activityPhase: 0, fatigue: 0, category: 'Social', health: 100 },
+  { id: 'r-showerthoughts', name: 'r/showerthoughts', subscribers: 0, karmaPerSecond: 100000000, level: 0, baseCost: 10000000000, multiplier: 1, unlocked: false, tier: 4, activityPeriod: 7200, activityPhase: Math.PI / 4, fatigue: 0, category: 'Social', health: 100 },
+  // Tier 5 (10T - 1e21)
+  { id: 'r-wallstreetbets', name: 'r/wallstreetbets', subscribers: 0, karmaPerSecond: 10000000000, level: 0, baseCost: 1000000000000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 14400, activityPhase: Math.PI / 2, fatigue: 0, category: 'Finance', health: 100 },
+  { id: 'r-cryptocurrency', name: 'r/cryptocurrency', subscribers: 0, karmaPerSecond: 50000000000, level: 0, baseCost: 5000000000000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 28800, activityPhase: 0, fatigue: 0, category: 'Finance', health: 100 },
+  { id: 'r-announcements', name: 'r/announcements', subscribers: 0, karmaPerSecond: 200000000000, level: 0, baseCost: 20000000000000, multiplier: 1, unlocked: false, tier: 5, activityPeriod: 86400, activityPhase: 0, fatigue: 0, category: 'Social', health: 100 },
 ];
 
 const INITIAL_UPGRADES: GlobalUpgrade[] = [
-  // Tier 1
+  // Tier 1 (0 - 1k)
   { id: 'automod', name: 'Automod', description: 'Reduces spam and increases efficiency. +10% KPS', cost: 50, multiplier: 1.1, purchased: false, type: 'passive', tier: 1 },
   { id: 'meme-factory', name: 'Meme Factory', description: 'Industrial grade memes. 2x Click Power', cost: 100, multiplier: 2, purchased: false, type: 'click', tier: 1 },
   { id: 'influencer-partnership', name: 'Influencer Partnership', description: 'Big names are talking about your subs. +20% KPS', cost: 250, multiplier: 1.2, purchased: false, type: 'passive', tier: 1 },
   { id: 'better-titles', name: 'Better Titles', description: 'Catchier titles lead to more clicks. +15% KPS', cost: 500, multiplier: 1.15, purchased: false, type: 'passive', tier: 1 },
   { id: 'clickbait-mastery', name: 'Clickbait Mastery', description: "You won't believe how much karma you'll get! 3x Click Power", cost: 750, multiplier: 3, purchased: false, type: 'click', tier: 1 },
-  // Tier 2
-  { id: 'dedicated-mods', name: 'Dedicated Mods', description: '24/7 moderation for your communities. +25% KPS', cost: 1500, multiplier: 1.25, purchased: false, type: 'passive', tier: 2 },
-  { id: 'subreddit-wiki', name: 'Subreddit Wiki', description: 'Better organization for new users. +30% KPS', cost: 3000, multiplier: 1.3, purchased: false, type: 'passive', tier: 2 },
-  { id: 'discord-server', name: 'Discord Server', description: 'Build a community outside of Reddit. +40% KPS', cost: 5000, multiplier: 1.4, purchased: false, type: 'passive', tier: 2 },
-  { id: 'bot-network', name: 'Bot Network', description: 'Automated engagement (the "good" kind). +50% KPS', cost: 8000, multiplier: 1.5, purchased: false, type: 'passive', tier: 2 },
-  // Tier 3
-  { id: 'trending-tab', name: 'Trending Tab', description: 'Get featured on the trending tab more often. +50% Viral Duration', cost: 15000, multiplier: 1.5, purchased: false, type: 'event', tier: 3 },
-  { id: 'front-page-feature', name: 'Front Page Feature', description: 'A guaranteed spot on the front page. 2x Viral Multiplier', cost: 30000, multiplier: 2, purchased: false, type: 'event', tier: 3 },
-  { id: 'cross-posting', name: 'Cross-posting Strategy', description: 'Share your content across multiple subs. +100% KPS', cost: 60000, multiplier: 2, purchased: false, type: 'passive', tier: 3 },
-  { id: 'viral-loop', name: 'Viral Loop', description: 'One viral post leads to another. 2x Viral Frequency', cost: 90000, multiplier: 2, purchased: false, type: 'event', tier: 3 },
-  // Tier 4
-  { id: 'algo-optimization', name: 'Algorithm Optimization', description: 'You know exactly what the algorithm wants. +150% KPS', cost: 150000, multiplier: 2.5, purchased: false, type: 'passive', tier: 4 },
-  { id: 'verified-status', name: 'Verified Status', description: 'Blue checkmarks for everyone! +200% KPS', cost: 300000, multiplier: 3, purchased: false, type: 'passive', tier: 4 },
-  { id: 'media-empire', name: 'Media Empire', description: 'You own the news cycle. 5x Click Power', cost: 600000, multiplier: 5, purchased: false, type: 'click', tier: 4 },
-  { id: 'global-reach', name: 'Global Reach', description: 'Your content is translated into every language. +300% KPS', cost: 900000, multiplier: 4, purchased: false, type: 'passive', tier: 4 },
-  // Tier 5
-  { id: 'internet-sensation', name: 'Internet Sensation', description: 'Everyone knows your name. +500% KPS', cost: 1500000, multiplier: 6, purchased: false, type: 'passive', tier: 5 },
-  { id: 'cultural-phenomenon', name: 'Cultural Phenomenon', description: 'You are the zeitgeist. 5x Viral Multiplier', cost: 3000000, multiplier: 5, purchased: false, type: 'event', tier: 5 },
-  { id: 'mainstream-media', name: 'Mainstream Media', description: 'TV, Radio, and Newspapers are talking. +1000% KPS', cost: 6000000, multiplier: 11, purchased: false, type: 'passive', tier: 5 },
-  { id: 'front-page-internet', name: 'Front Page of the Internet', description: 'You ARE Reddit. 10x Click Power', cost: 10000000, multiplier: 10, purchased: false, type: 'click', tier: 5 },
+  // Tier 2 (1k - 100k)
+  { id: 'dedicated-mods', name: 'Dedicated Mods', description: '24/7 moderation for your communities. +50% KPS', cost: 5000, multiplier: 1.5, purchased: false, type: 'passive', tier: 2 },
+  { id: 'subreddit-wiki', name: 'Subreddit Wiki', description: 'Better organization for new users. 2x KPS', cost: 15000, multiplier: 2, purchased: false, type: 'passive', tier: 2 },
+  { id: 'discord-server', name: 'Discord Server', description: 'Build a community outside of Reddit. 3x KPS', cost: 40000, multiplier: 3, purchased: false, type: 'passive', tier: 2 },
+  { id: 'bot-network', name: 'Bot Network', description: 'Automated engagement (the "good" kind). 5x KPS', cost: 80000, multiplier: 5, purchased: false, type: 'passive', tier: 2 },
+  // Tier 3 (100k - 100M)
+  { id: 'trending-tab', name: 'Trending Tab', description: 'Get featured on the trending tab more often. 2x Viral Duration', cost: 500000, multiplier: 2, purchased: false, type: 'event', tier: 3 },
+  { id: 'front-page-feature', name: 'Front Page Feature', description: 'A guaranteed spot on the front page. 5x Viral Multiplier', cost: 2000000, multiplier: 5, purchased: false, type: 'event', tier: 3 },
+  { id: 'cross-posting', name: 'Cross-posting Strategy', description: 'Share your content across multiple subs. 10x KPS', cost: 10000000, multiplier: 10, purchased: false, type: 'passive', tier: 3 },
+  { id: 'viral-loop', name: 'Viral Loop', description: 'One viral post leads to another. 5x Viral Frequency', cost: 50000000, multiplier: 5, purchased: false, type: 'event', tier: 3 },
+  // Tier 4 (100M - 10T)
+  { id: 'algo-optimization', name: 'Algorithm Optimization', description: 'You know exactly what the algorithm wants. 100x KPS', cost: 500000000000, multiplier: 100, purchased: false, type: 'passive', tier: 4 },
+  { id: 'verified-status', name: 'Verified Status', description: 'Blue checkmarks for everyone! 500x KPS', cost: 2000000000000, multiplier: 500, purchased: false, type: 'passive', tier: 4 },
+  { id: 'media-empire', name: 'Media Empire', description: 'You own the news cycle. 1000x Click Power', cost: 5000000000000, multiplier: 1000, purchased: false, type: 'click', tier: 4 },
+  { id: 'global-reach', name: 'Global Reach', description: 'Your content is translated into every language. 2000x KPS', cost: 8000000000000, multiplier: 2000, purchased: false, type: 'passive', tier: 4 },
+  // Tier 5 (10T - 1e21)
+  { id: 'internet-sensation', name: 'Internet Sensation', description: 'Everyone knows your name. 10,000x KPS', cost: 100000000000000, multiplier: 10000, purchased: false, type: 'passive', tier: 5 },
+  { id: 'cultural-phenomenon', name: 'Cultural Phenomenon', description: 'You are the zeitgeist. 100x Viral Multiplier', cost: 500000000000000, multiplier: 100, purchased: false, type: 'event', tier: 5 },
+  { id: 'mainstream-media', name: 'Mainstream Media', description: 'TV, Radio, and Newspapers are talking. 1,000,000x KPS', cost: 2000000000000000, multiplier: 1000000, purchased: false, type: 'passive', tier: 5 },
+  { id: 'front-page-internet', name: 'Front Page of the Internet', description: 'You ARE Reddit. 1,000,000x Click Power', cost: 10000000000000000, multiplier: 1000000, purchased: false, type: 'click', tier: 5 },
 ];
 
 const NEGATIVE_EVENTS = [

@@ -7,16 +7,27 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatKarma(value: number): string {
   if (value === null || value === undefined || isNaN(value)) return '0';
-  if (value >= 1000000) {
-    const formatted = (value / 1000000).toFixed(1);
-    return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'M';
+  
+  const suffixes = [
+    { value: 1e21, symbol: 'Sx' },
+    { value: 1e18, symbol: 'E' },
+    { value: 1e15, symbol: 'P' },
+    { value: 1e12, symbol: 'T' },
+    { value: 1e9, symbol: 'B' },
+    { value: 1e6, symbol: 'M' },
+    { value: 1e3, symbol: 'K' },
+  ];
+
+  for (const suffix of suffixes) {
+    if (value >= suffix.value) {
+      const formatted = (value / suffix.value).toFixed(1);
+      return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + suffix.symbol;
+    }
   }
-  if (value >= 1000) {
-    const formatted = (value / 1000).toFixed(1);
-    return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'K';
-  }
+
   if (value >= 100) {
     return Math.floor(value).toLocaleString();
   }
+  
   return value.toFixed(1).replace(/\.0$/, '');
 }
