@@ -101,6 +101,10 @@ export interface GameState {
   gracePeriod: number;
   activeAction: ActiveAction | null;
   currentKpsBreakdown: KpsBreakdownData;
+  username: string | null;
+  hasSeenWelcome: boolean;
+  gameStartedAt: number;
+  totalPostsCreated: number;
 }
 
 export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue';
@@ -123,6 +127,7 @@ export interface GameActions {
   removeCelebration: (id: string) => void;
   resetGame: () => void;
   continueGame: () => void;
+  completeWelcome: (username: string) => void;
 }
 
 export type GameStore = GameState & GameActions & { celebrations: Celebration[] };
@@ -211,6 +216,10 @@ export const useGameStore = create<GameStore>()(
         postKps: 0,
         totalKps: 0,
       },
+      username: null,
+      hasSeenWelcome: false,
+      gameStartedAt: Date.now(),
+      totalPostsCreated: 0,
 
       triggerCelebration: (type: CelebrationType) => {
         const id = `celebration-${Date.now()}-${Math.random()}`;
@@ -334,6 +343,7 @@ export const useGameStore = create<GameStore>()(
 
         set((state: GameState) => ({
           activePosts: [...state.activePosts, newPost],
+          totalPostsCreated: state.totalPostsCreated + 1,
           subreddits: state.subreddits.map(s =>
             s.id === targetSub.id
               ? { ...s, fatigue: Math.min(0.8, (s.fatigue || 0) + 0.1) }
@@ -416,6 +426,22 @@ export const useGameStore = create<GameStore>()(
             postKps: 0,
             totalKps: 0,
           },
+          username: null,
+          hasSeenWelcome: false,
+          gameStartedAt: Date.now(),
+          totalPostsCreated: 0,
+        });
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      },
+
+      completeWelcome: (username: string) => {
+        console.log("Completing welcome for", username);
+        set({
+          username,
+          hasSeenWelcome: true,
+          gameStartedAt: Date.now(),
         });
       },
 
@@ -666,19 +692,9 @@ export const useGameStore = create<GameStore>()(
       },
     }),
     {
-      name: 'karma-tycoon-storage',
+      name: 'karma-tycoon-storage-v2',
       storage: createJSONStorage(() => localStorage),
       version: 1,
-      partialize: (state) => {
-        const { celebrations, ...rest } = state as any;
-        return rest;
-      },
-      migrate: (persistedState: any, version: number) => {
-        if (version === 0) {
-          // Handle migration from version 0 if needed
-        }
-        return persistedState;
-      },
       merge: (persistedState: any, currentState: GameStore) => {
         const state = persistedState as GameState;
         if (!state) return currentState;
@@ -725,7 +741,37 @@ export const useGameStore = create<GameStore>()(
           isGameOver: state.isGameOver || false,
           gracePeriod: state.gracePeriod || 0,
           activeAction: state.activeAction || null,
+          hasSeenWelcome: state.hasSeenWelcome !== undefined ? state.hasSeenWelcome : false,
+          username: state.username !== undefined ? state.username : null,
+          gameStartedAt: state.gameStartedAt !== undefined ? state.gameStartedAt : Date.now(),
+          totalPostsCreated: state.totalPostsCreated !== undefined ? state.totalPostsCreated : 0,
         };
+      },
+      partialize: (state) => ({
+        totalKarma: state.totalKarma,
+        lifetimeKarma: state.lifetimeKarma,
+        subreddits: state.subreddits,
+        upgrades: state.upgrades,
+        activeEvents: state.activeEvents,
+        activePosts: state.activePosts,
+        clickEnergy: state.clickEnergy,
+        lastTick: state.lastTick,
+        lastKarmaUpdate: state.lastKarmaUpdate,
+        karmaAccumulator: state.karmaAccumulator,
+        isGameOver: state.isGameOver,
+        gracePeriod: state.gracePeriod,
+        activeAction: state.activeAction,
+        currentKpsBreakdown: state.currentKpsBreakdown,
+        username: state.username,
+        hasSeenWelcome: state.hasSeenWelcome,
+        gameStartedAt: state.gameStartedAt,
+        totalPostsCreated: state.totalPostsCreated,
+      }),
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          // Handle migration from version 0 if needed
+        }
+        return persistedState;
       },
     }
   )

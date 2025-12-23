@@ -31,3 +31,24 @@ export function formatKarma(value: number): string {
   
   return value.toFixed(1).replace(/\.0$/, '');
 }
+
+export function generateUsername(): string {
+  const qualifiers = [
+    "Ambitious", "Brave", "Cunning", "Daring", "Elite",
+    "Famous", "Glorious", "Hungry", "Intelligent", "Jolly",
+    "Kind", "Lucky", "Mighty", "Noble", "Optimistic",
+    "Proud", "Quick", "Rare", "Sneaky", "Tough"
+  ];
+  const nouns = [
+    "Lurker", "Moderator", "Redditor", "Shitposter", "KarmaFarmer",
+    "Upvoter", "Downvoter", "MemeLord", "Admin", "User",
+    "Poster", "Debater", "Explorer", "Collector", "Strategist",
+    "Influencer", "Skeptical", "Believer", "Dreamer", "Legend"
+  ];
+
+  const qualifier = qualifiers[Math.floor(Math.random() * qualifiers.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const numbers = Math.floor(1000 + Math.random() * 9000).toString();
+
+  return `${qualifier}-${noun}-${numbers}`;
+}
