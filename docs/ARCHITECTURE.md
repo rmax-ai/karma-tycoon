@@ -34,8 +34,23 @@ The game loop is driven by the [`useGameLoop`](src/hooks/useGameLoop.ts) hook, w
 
 ### Karma Generation
 Karma is generated through two primary methods:
-1.  **Active Clicking**: Clicking the "Post" button in the Dashboard.
-2.  **Passive Income**: Subreddits generate karma over time based on their level and multipliers.
+1.  **Active Content**: Creating posts via the "Create Content" button. These follow a popularity curve.
+2.  **Passive Income**: Subreddits generate karma over time based on their level and various efficiency factors.
+
+#### KPS Calculation Formula
+Values are formatted using `formatKarma` (e.g., 1.1K, 2.5M) for better readability.
+
+The total Karma Per Second (KPS) is calculated as:
+$TotalKPS = (PassiveIncome + PostIncome) \times PassiveUpgradeMultiplier \times GlobalEventMultiplier$
+
+Where **PassiveIncome** for each subreddit is:
+$SubKPS = BaseKPS \times Level \times Multiplier \times ActivityScore \times Seasonality \times Fatigue \times Health \times Synergy \times LocalEvent$
+
+- **ActivityScore**: 0.5x if 1 post is active in the sub, 1.0x if 2+ posts are active.
+- **Seasonality**: A sine wave based on the subreddit's `activityPeriod`.
+- **Fatigue**: Reduces income as more posts are created in a short time.
+- **Health**: Reduces income if the subreddit is poorly moderated (below 75% health).
+- **Synergy**: 5% boost for each active post in the same category.
 
 ### Cost Scaling
 The cost of purchasing or upgrading a subreddit follows an exponential scaling formula:
@@ -53,6 +68,9 @@ Viral events are random occurrences that provide temporary boosts:
 
 ## Advanced Game Dynamics
 For detailed information on popularity curves, seasonality, and algorithm fatigue, see [GAME_DYNAMICS.md](GAME_DYNAMICS.md).
+
+### KPS Breakdown Component
+The [`KpsBreakdown`](src/components/KpsBreakdown.tsx) component provides a live view of all these parameters. It uses the centralized logic in [`src/lib/game-logic.ts`](src/lib/game-logic.ts) to ensure the dashboard and the breakdown popup are always in sync.
 
 ## Data Structures
 

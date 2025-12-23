@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useGameStore, TIER_THRESHOLDS } from '@/store/useGameStore';
+import { calculateKpsBreakdown } from '@/lib/game-logic';
+import { formatKarma } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { TrendingUp, MousePointer2, Info, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TierInfoModal } from './TierInfoModal';
+import { KpsBreakdown } from './KpsBreakdown';
 
 interface FloatingText {
   id: number;
@@ -29,61 +32,27 @@ export const Dashboard = () => {
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
 
-  // Calculate KPS
-  const now = Date.now();
-
-  const globalMultiplier = activeEvents
-    .filter(e => !e.subredditId)
-    .reduce((acc, event) => acc * event.multiplier, 1);
-
-  const passiveUpgradeMultiplier = upgrades
-    .filter((u) => u.purchased && u.type === 'passive')
-    .reduce((acc, u) => acc * u.multiplier, 1);
-
-  const subredditsWithKps = subreddits
-    .filter(sub => sub.level > 0)
-    .map(sub => {
-      const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
-      const fatigueMultiplier = 1 - (sub.fatigue || 0);
-      const healthMultiplier = (sub.health || 100) < 50 ? ((sub.health || 100) / 50) : 1;
-
-      // Activity-based decay
-      const activePostsInSub = activePosts.filter(p => p.subredditId === sub.id);
-      const activityScore = activePostsInSub.length === 0 ? 0 : activePostsInSub.length === 1 ? 0.5 : 1;
-
-      const synergyPosts = activePosts.filter(p => {
-        const postSub = subreddits.find(s => s.id === p.subredditId);
-        return postSub?.category === sub.category && p.subredditId !== sub.id;
-      });
-      const synergyMultiplier = 1 + (synergyPosts.length * 0.05);
-
-      const kps = sub.karmaPerSecond * sub.level * sub.multiplier * activityScore * activityMultiplier * fatigueMultiplier * healthMultiplier * synergyMultiplier;
-      
-      return {
-        ...sub,
-        currentKps: kps * passiveUpgradeMultiplier * globalMultiplier
-      };
-    });
-
-  const passiveKps = subredditsWithKps.reduce((acc, sub) => acc + (sub.currentKps / (passiveUpgradeMultiplier * globalMultiplier)), 0);
-
-  const topSubreddits = [...subredditsWithKps]
-    .sort((a, b) => b.currentKps - a.currentKps)
-    .slice(0, 5);
-
-  const postKps = activePosts.reduce((acc, post) => {
-    const t = (now - post.createdAt) / 1000;
-    const ratio = t / post.peakTime;
-    const kps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
-    return acc + kps;
-  }, 0);
-
-  const totalKps = (passiveKps + postKps) * passiveUpgradeMultiplier * globalMultiplier;
-
   // Tier Logic
   const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
   const nextTier = TIER_THRESHOLDS.find(t => t.tier === currentTier.tier + 1);
-  
+
+  // Calculate KPS using centralized logic
+  const now = Date.now();
+  const breakdown = useMemo(() => calculateKpsBreakdown(
+    subreddits,
+    activePosts,
+    upgrades,
+    activeEvents,
+    currentTier,
+    now
+  ), [subreddits, activePosts, upgrades, activeEvents, currentTier, now]);
+
+  const { totalKps, postKps, passiveUpgradeMultiplier, globalMultiplier } = breakdown;
+
+  const topSubreddits = useMemo(() => [...breakdown.subreddits]
+    .sort((a, b) => b.finalKps - a.finalKps)
+    .slice(0, 5), [breakdown.subreddits]);
+
   const tierProgress = nextTier 
     ? ((lifetimeKarma - currentTier.minKarma) / (currentTier.maxKarma - currentTier.minKarma)) * 100
     : 100;
@@ -161,12 +130,13 @@ export const Dashboard = () => {
 
             <div className="flex flex-col items-center space-y-1 text-muted-foreground">
               <div className="flex items-center space-x-2">
-                <span className="font-semibold text-foreground text-xl">{totalKps.toFixed(1)}</span>
+                <span className="font-semibold text-foreground text-xl">{formatKarma(totalKps)}</span>
                 <span>Karma / second</span>
+                <KpsBreakdown />
               </div>
               <div className="text-[10px] flex gap-4">
-                <span>Passive: {(passiveKps * passiveUpgradeMultiplier * globalMultiplier).toFixed(1)}</span>
-                <span>Active Posts: {(postKps * passiveUpgradeMultiplier * globalMultiplier).toFixed(1)}</span>
+                <span>Passive: {formatKarma(breakdown.subreddits.reduce((acc, s) => acc + s.finalKps, 0) * passiveUpgradeMultiplier * globalMultiplier)}</span>
+                <span>Active Posts: {formatKarma(postKps * passiveUpgradeMultiplier * globalMultiplier)}</span>
               </div>
             </div>
 
@@ -250,7 +220,7 @@ export const Dashboard = () => {
                         <div className="flex justify-between items-start">
                           <span className="text-xs font-bold">{sub?.name || 'Unknown Sub'}</span>
                           <span className="text-[10px] font-mono text-orange-600 font-bold">
-                            +{currentKps.toFixed(1)} KPS
+                            +{formatKarma(currentKps)} KPS
                           </span>
                         </div>
                         <Progress value={progress} className="h-1" />
@@ -290,10 +260,10 @@ export const Dashboard = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-xs font-bold text-orange-600">
-                        {sub.currentKps.toFixed(1)} KPS
+                        {formatKarma(sub.finalKps * passiveUpgradeMultiplier * globalMultiplier)} KPS
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        {((sub.currentKps / totalKps) * 100).toFixed(1)}% of total
+                        {(((sub.finalKps * passiveUpgradeMultiplier * globalMultiplier) / totalKps) * 100).toFixed(1)}% of total
                       </div>
                     </div>
                   </div>
