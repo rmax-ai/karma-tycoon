@@ -82,6 +82,12 @@ export interface GameState {
   lastTick: number;
   isGameOver: boolean;
   gracePeriod: number;
+  crafting: {
+    duration: number;
+    remainingTime: number;
+    qualityMultiplier: number;
+    subredditId?: string;
+  } | null;
 }
 
 export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue';
@@ -99,6 +105,7 @@ export interface GameActions {
   purchaseUpgrade: (id: string) => void;
   clearModQueue: (id: string) => void;
   tick: (delta: number) => void;
+  startCrafting: (qualityMultiplier: number, subredditId?: string) => void;
   triggerCelebration: (type: CelebrationType) => void;
   removeCelebration: (id: string) => void;
   resetGame: () => void;
@@ -181,6 +188,7 @@ export const useGameStore = create<GameStore>()(
       lastTick: Date.now(),
       isGameOver: false,
       gracePeriod: 0,
+      crafting: null,
 
       triggerCelebration: (type: CelebrationType) => {
         const id = `celebration-${Date.now()}-${Math.random()}`;
@@ -199,8 +207,10 @@ export const useGameStore = create<GameStore>()(
         }));
       },
 
-      addKarma: (amount: number, qualityMultiplier: number = 1, subredditId?: string) => {
+      startCrafting: (qualityMultiplier: number, subredditId?: string) => {
         const state = get();
+        if (state.crafting) return; // Already crafting
+
         const lifetimeKarma = state.lifetimeKarma;
         const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
         
@@ -210,6 +220,32 @@ export const useGameStore = create<GameStore>()(
 
         if (state.clickEnergy < 1) {
           return; // Not enough energy
+        }
+
+        const min = 3;
+        const max = 15;
+        // Positively skewed: more likely to be near min
+        const duration = min + (max - min) * Math.pow(Math.random(), 2);
+        
+        set({
+          crafting: {
+            duration,
+            remainingTime: duration,
+            qualityMultiplier,
+            subredditId
+          },
+          clickEnergy: state.clickEnergy - 1
+        });
+      },
+
+      addKarma: (amount: number, qualityMultiplier: number = 1, subredditId?: string) => {
+        const state = get();
+        const lifetimeKarma = state.lifetimeKarma;
+        const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
+        
+        // Note: Energy and slots are checked in startCrafting now, but we keep checks here for safety
+        if (state.activePosts.length >= currentTier.maxPostSlots) {
+          return;
         }
 
         const unlockedSubs = state.subreddits.filter(s => s.unlocked);
@@ -251,7 +287,6 @@ export const useGameStore = create<GameStore>()(
 
         set((state: GameState) => ({
           activePosts: [...state.activePosts, newPost],
-          clickEnergy: state.clickEnergy - 1,
           subreddits: state.subreddits.map(s =>
             s.id === targetSub.id
               ? { ...s, fatigue: Math.min(0.8, (s.fatigue || 0) + 0.1) }
@@ -343,6 +378,7 @@ export const useGameStore = create<GameStore>()(
           clickEnergy: 50,
           isGameOver: false,
           gracePeriod: 0,
+          crafting: null,
         });
       },
 
@@ -357,6 +393,21 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         
         if (state.isGameOver) return;
+
+        let nextCrafting = state.crafting ? { ...state.crafting } : null;
+        let postToCreate: { qualityMultiplier: number, subredditId?: string } | null = null;
+
+        // 0. Update crafting
+        if (nextCrafting) {
+          nextCrafting.remainingTime -= delta;
+          if (nextCrafting.remainingTime <= 0) {
+            postToCreate = { 
+              qualityMultiplier: nextCrafting.qualityMultiplier, 
+              subredditId: nextCrafting.subredditId 
+            };
+            nextCrafting = null;
+          }
+        }
 
         // 1. Update active events
         const updatedEvents = state.activeEvents
@@ -449,13 +500,59 @@ export const useGameStore = create<GameStore>()(
 
         // 3. Update active posts and calculate their income
         const now = Date.now();
-        const updatedPosts = state.activePosts.filter(post => (now - post.createdAt) / 1000 < post.duration);
+        let updatedPosts = state.activePosts.filter(post => (now - post.createdAt) / 1000 < post.duration);
         
+        // Handle post creation from crafting completion
+        if (postToCreate) {
+          const { qualityMultiplier, subredditId } = postToCreate;
+          const lifetimeKarma = state.lifetimeKarma;
+          const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
+          
+          const unlockedSubs = state.subreddits.filter(s => s.unlocked);
+          if (unlockedSubs.length > 0) {
+            const targetSub = subredditId
+              ? state.subreddits.find(s => s.id === subredditId)
+              : unlockedSubs[Math.floor(Math.random() * unlockedSubs.length)];
+            
+            if (targetSub && targetSub.unlocked) {
+              const clickMultiplier = state.upgrades
+                .filter((u) => u.purchased && u.type === 'click')
+                .reduce((acc, u) => acc * u.multiplier, 1);
+
+              const localEvents = state.activeEvents.filter(e => e.subredditId === targetSub.id);
+              const localMultiplier = localEvents.reduce((acc, e) => acc * e.multiplier, 1);
+
+              const basePeakKps = targetSub.karmaPerSecond * (targetSub.level || 1) * targetSub.multiplier * clickMultiplier * localMultiplier;
+              const fatigueMultiplier = 1 - (targetSub.fatigue || 0);
+              const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (Date.now() / 1000)) / targetSub.activityPeriod + targetSub.activityPhase);
+              const healthMultiplier = targetSub.health < 75 ? (targetSub.health / 75) : 1;
+              const finalPeakKps = basePeakKps * fatigueMultiplier * activityMultiplier * healthMultiplier * (0.8 + Math.random() * 0.7) * qualityMultiplier * currentTier.clickPowerMultiplier;
+
+              const newPost: Post = {
+                id: `post-${Date.now()}-${Math.random()}`,
+                subredditId: targetSub.id,
+                createdAt: Date.now(),
+                peakKps: finalPeakKps,
+                peakTime: (10 + Math.random() * 20) * (qualityMultiplier > 1 ? 1.5 : 1),
+                duration: (60 + Math.random() * 120) * (qualityMultiplier > 1 ? 2 : 1),
+                k: 1.5 + Math.random() * 1.0,
+              };
+
+              updatedPosts = [...updatedPosts, newPost];
+              updatedSubredditsForHealth = updatedSubredditsForHealth.map(s =>
+                s.id === targetSub.id
+                  ? { ...s, fatigue: Math.min(0.8, (s.fatigue || 0) + 0.1) }
+                  : s
+              );
+              get().triggerCelebration('content');
+            }
+          }
+        }
+
         let postIncome = 0;
         updatedPosts.forEach(post => {
           const t = (now - post.createdAt) / 1000;
           const ratio = t / post.peakTime;
-          // Gamma distribution-like curve: f(t) = PeakKPS * (t/PeakTime)^k * e^(k * (1 - t/PeakTime))
           const kps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
           postIncome += kps * delta;
         });
@@ -463,32 +560,23 @@ export const useGameStore = create<GameStore>()(
         // 4. Calculate passive income with seasonality, fatigue, and health
         let passiveIncome = 0;
         const updatedSubreddits = updatedSubredditsForHealth.map(sub => {
-          // Fatigue decay: 5% per second
           const newFatigue = Math.max(0, (sub.fatigue || 0) - 0.05 * delta);
-          
-          // Health decay: increases with level
           const healthDecayRate = 0.1 + (sub.level * 0.01);
           const newHealth = Math.max(0, (sub.health || 100) - healthDecayRate * delta);
 
           if (sub.level > 0) {
-            // Activity-based decay: 0 posts = 0%, 1 post = 50%, 2+ posts = 100%
             const activePostsInSub = updatedPosts.filter(p => p.subredditId === sub.id);
             const activityScore = activePostsInSub.length === 0 ? 0 : activePostsInSub.length === 1 ? 0.5 : 1;
-
             const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (now / 1000)) / sub.activityPeriod + sub.activityPhase);
             const fatigueMultiplier = 1 - newFatigue;
-            
-            // Health penalty: linear drop below 75% health
             const healthMultiplier = newHealth < 75 ? (newHealth / 75) : 1;
 
-            // Synergy: +5% for each active post in the same category
             const synergyPosts = updatedPosts.filter(p => {
               const postSub = state.subreddits.find(s => s.id === p.subredditId);
               return postSub?.category === sub.category && p.subredditId !== sub.id;
             });
             const synergyMultiplier = 1 + (synergyPosts.length * 0.05);
 
-            // Local event multipliers (including negative ones)
             const localEvents = newEvents.filter(e => e.subredditId === sub.id);
             const localMultiplier = localEvents.reduce((acc, e) => acc * e.multiplier, 1);
 
@@ -512,7 +600,7 @@ export const useGameStore = create<GameStore>()(
         const isKpsZero = totalIncome <= 0;
         const hasUnlockedSub = state.subreddits.some(s => s.unlocked && s.level > 0);
         
-        let newIsGameOver = state.isGameOver;
+        let newIsGameOver: boolean = state.isGameOver;
         let newGracePeriod = Math.max(0, (state.gracePeriod || 0) - delta);
 
         if (hasUnlockedSub && isKpsZero && newGracePeriod <= 0 && !state.isGameOver) {
@@ -523,7 +611,6 @@ export const useGameStore = create<GameStore>()(
           const lifetimeKarma = state.lifetimeKarma + totalIncome;
           const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
           
-          // Energy recharge
           const energyGain = delta / currentTier.rechargeRate;
           const newEnergy = Math.min(currentTier.maxEnergy, state.clickEnergy + energyGain);
 
@@ -537,6 +624,7 @@ export const useGameStore = create<GameStore>()(
             lastTick: now,
             isGameOver: newIsGameOver,
             gracePeriod: newGracePeriod,
+            crafting: nextCrafting,
           };
         });
       },
@@ -600,6 +688,7 @@ export const useGameStore = create<GameStore>()(
           clickEnergy: state.clickEnergy !== undefined ? state.clickEnergy : 50,
           isGameOver: state.isGameOver || false,
           gracePeriod: state.gracePeriod || 0,
+          crafting: state.crafting || null,
         };
       },
     }

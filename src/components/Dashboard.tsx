@@ -19,7 +19,8 @@ interface FloatingText {
 export const Dashboard = () => {
   const totalKarma = useGameStore((state) => state.totalKarma);
   const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
-  const addKarma = useGameStore((state) => state.addKarma);
+  const startCrafting = useGameStore((state) => state.startCrafting);
+  const crafting = useGameStore((state) => state.crafting);
   const subreddits = useGameStore((state) => state.subreddits);
   const activeEvents = useGameStore((state) => state.activeEvents);
   const activePosts = useGameStore((state) => state.activePosts);
@@ -27,8 +28,6 @@ export const Dashboard = () => {
 
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
-  const [holdStartTime, setHoldStartTime] = useState<number | null>(null);
-  const [holdProgress, setHoldProgress] = useState(0);
 
   // Calculate KPS
   const now = Date.now();
@@ -81,10 +80,6 @@ export const Dashboard = () => {
 
   const totalKps = (passiveKps + postKps) * passiveUpgradeMultiplier * globalMultiplier;
 
-  const clickMultiplier = upgrades
-    .filter((u) => u.purchased && u.type === 'click')
-    .reduce((acc, u) => acc * u.multiplier, 1);
-
   // Tier Logic
   const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
   const nextTier = TIER_THRESHOLDS.find(t => t.tier === currentTier.tier + 1);
@@ -93,51 +88,31 @@ export const Dashboard = () => {
     ? ((lifetimeKarma - currentTier.minKarma) / (currentTier.maxKarma - currentTier.minKarma)) * 100
     : 100;
 
-  const handleMouseDown = () => {
-    if (activePosts.length >= currentTier.maxPostSlots) return;
-    setHoldStartTime(Date.now());
-    setHoldProgress(0);
-  };
-
-  const handleMouseUp = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!holdStartTime) return;
+  const handleCreateContent = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (activePosts.length >= currentTier.maxPostSlots || crafting) return;
     
-    const holdDuration = Date.now() - holdStartTime;
-    const isHighQuality = holdDuration >= 2000; // 2 seconds for high quality
-    const qualityMultiplier = isHighQuality ? 3 : 1;
+    startCrafting(1);
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
-    addKarma(1, qualityMultiplier);
 
     const newText: FloatingText = {
       id: Date.now(),
       x,
       y,
-      value: isHighQuality ? 'HIGH QUALITY POST!' : '+1 Post',
+      value: 'Crafting Started...',
     };
 
     setFloatingTexts((prev) => [...prev, newText]);
     setTimeout(() => {
       setFloatingTexts((prev) => prev.filter((t) => t.id !== newText.id));
     }, 1000);
-
-    setHoldStartTime(null);
-    setHoldProgress(0);
   };
 
-  React.useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (holdStartTime) {
-      interval = setInterval(() => {
-        const elapsed = Date.now() - holdStartTime;
-        setHoldProgress(Math.min(100, (elapsed / 2000) * 100));
-      }, 50);
-    }
-    return () => clearInterval(interval);
-  }, [holdStartTime]);
+  const craftingProgress = crafting 
+    ? ((crafting.duration - crafting.remainingTime) / crafting.duration) * 100 
+    : 0;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -207,15 +182,20 @@ export const Dashboard = () => {
               <Button
                 size="lg"
                 className="w-full h-16 text-xl font-bold bg-orange-500 hover:bg-orange-600 transition-all active:scale-95 relative overflow-hidden"
-                onMouseDown={handleMouseDown}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={() => { setHoldStartTime(null); setHoldProgress(0); }}
-                disabled={activePosts.length >= currentTier.maxPostSlots}
+                onClick={handleCreateContent}
+                disabled={activePosts.length >= currentTier.maxPostSlots || !!crafting}
                 data-testid="create-content-btn"
               >
-                <div className="absolute bottom-0 left-0 h-1 bg-white/30 transition-all" style={{ width: `${holdProgress}%` }} />
+                <div 
+                  className="absolute bottom-0 left-0 h-full bg-white/20 transition-all duration-100 ease-linear" 
+                  style={{ width: `${craftingProgress}%` }} 
+                />
                 <MousePointer2 className="mr-2 h-6 w-6" />
-                {activePosts.length >= currentTier.maxPostSlots ? 'Slots Full' : holdProgress > 0 ? 'Crafting...' : 'Create Content'}
+                {activePosts.length >= currentTier.maxPostSlots 
+                  ? 'Slots Full' 
+                  : crafting 
+                    ? 'Crafting...' 
+                    : 'Create Content'}
               </Button>
               
               <AnimatePresence>
