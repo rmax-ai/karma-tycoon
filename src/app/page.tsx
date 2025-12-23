@@ -9,6 +9,7 @@ import { MascotAnimations } from '@/components/MascotAnimations';
 import { CollapsibleSection } from '@/components/CollapsibleSection';
 import { CelebrationOverlay } from '@/components/CelebrationOverlay';
 import { GameOverModal } from '@/components/GameOverModal';
+import { ActionOverlay } from '@/components/ActionOverlay';
 
 export default function Home() {
   // Initialize the game loop
@@ -40,6 +41,7 @@ export default function Home() {
       <MascotAnimations />
       <CelebrationOverlay />
       <GameOverModal />
+      <ActionOverlay />
     </main>
   );
 }

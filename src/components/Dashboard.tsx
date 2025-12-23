@@ -23,8 +23,8 @@ export const Dashboard = () => {
   const totalKarma = useGameStore((state) => state.totalKarma);
   const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
   const lastKarmaUpdate = useGameStore((state) => state.lastKarmaUpdate);
-  const startCrafting = useGameStore((state) => state.startCrafting);
-  const crafting = useGameStore((state) => state.crafting);
+  const startAction = useGameStore((state) => state.startAction);
+  const activeAction = useGameStore((state) => state.activeAction);
   const subreddits = useGameStore((state) => state.subreddits);
   const activeEvents = useGameStore((state) => state.activeEvents);
   const activePosts = useGameStore((state) => state.activePosts);
@@ -54,9 +54,9 @@ export const Dashboard = () => {
     : 100;
 
   const handleCreateContent = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (activePosts.length >= currentTier.maxPostSlots || crafting) return;
+    if (activePosts.length >= currentTier.maxPostSlots || activeAction) return;
     
-    startCrafting(1);
+    startAction('post', { qualityMultiplier: 1 });
 
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -74,10 +74,6 @@ export const Dashboard = () => {
       setFloatingTexts((prev) => prev.filter((t) => t.id !== newText.id));
     }, 1000);
   };
-
-  const craftingProgress = crafting 
-    ? ((crafting.duration - crafting.remainingTime) / crafting.duration) * 100 
-    : 0;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -134,18 +130,14 @@ export const Dashboard = () => {
                 size="lg"
                 className="w-full h-16 text-xl font-bold bg-orange-500 hover:bg-orange-600 transition-all active:scale-95 relative overflow-hidden"
                 onClick={handleCreateContent}
-                disabled={activePosts.length >= currentTier.maxPostSlots || !!crafting}
+                disabled={activePosts.length >= currentTier.maxPostSlots || !!activeAction}
                 data-testid="create-content-btn"
               >
-                <div 
-                  className="absolute bottom-0 left-0 h-full bg-white/20 transition-all duration-100 ease-linear" 
-                  style={{ width: `${craftingProgress}%` }} 
-                />
                 <MousePointer2 className="mr-2 h-6 w-6" />
-                {activePosts.length >= currentTier.maxPostSlots 
-                  ? 'Slots Full' 
-                  : crafting 
-                    ? 'Crafting...' 
+                {activePosts.length >= currentTier.maxPostSlots
+                  ? 'Slots Full'
+                  : activeAction
+                    ? 'Busy...'
                     : 'Create Content'}
               </Button>
               

@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { formatKarma } from '@/lib/utils';
 
 export const UpgradesList = () => {
-  const { upgrades, totalKarma, lifetimeKarma, purchaseUpgrade } = useGameStore();
+  const { upgrades, totalKarma, lifetimeKarma, startAction, activeAction } = useGameStore();
 
   const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
 
@@ -59,9 +59,9 @@ export const UpgradesList = () => {
                 </span>
                 <Button
                   size="sm"
-                  disabled={upgrade.purchased || totalKarma < upgrade.cost}
-                  onClick={() => purchaseUpgrade(upgrade.id)}
-                  className={!upgrade.purchased && totalKarma >= upgrade.cost ? 'bg-orange-500 hover:bg-orange-600' : ''}
+                  disabled={upgrade.purchased || totalKarma < upgrade.cost || !!activeAction}
+                  onClick={() => startAction('upgrade', { upgradeId: upgrade.id })}
+                  className={!upgrade.purchased && totalKarma >= upgrade.cost && !activeAction ? 'bg-orange-500 hover:bg-orange-600' : ''}
                 >
                   {upgrade.purchased ? 'Owned' : 'Buy'}
                 </Button>

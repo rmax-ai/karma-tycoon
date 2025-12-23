@@ -13,11 +13,10 @@ export const SubredditList = () => {
   const subreddits = useGameStore((state) => state.subreddits);
   const totalKarma = useGameStore((state) => state.totalKarma);
   const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
-  const upgradeSubreddit = useGameStore((state) => state.upgradeSubreddit);
-  const clearModQueue = useGameStore((state) => state.clearModQueue);
+  const startAction = useGameStore((state) => state.startAction);
+  const activeAction = useGameStore((state) => state.activeAction);
   const activeEvents = useGameStore((state) => state.activeEvents);
   const activePosts = useGameStore((state) => state.activePosts);
-  const addKarma = useGameStore((state) => state.addKarma);
   const breakdown = useGameStore((state) => state.currentKpsBreakdown);
 
   const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
@@ -129,8 +128,8 @@ export const SubredditList = () => {
                       variant={isViral ? "default" : "secondary"}
                       size="sm"
                       className={`w-full text-[10px] h-8 ${isViral ? 'bg-orange-500 hover:bg-orange-600 animate-pulse' : ''}`}
-                      onClick={() => addKarma(1, 1, sub.id)}
-                      disabled={activePosts.length >= currentTier.maxPostSlots}
+                      onClick={() => startAction('post', { subredditId: sub.id, qualityMultiplier: 1 })}
+                      disabled={activePosts.length >= currentTier.maxPostSlots || !!activeAction}
                     >
                       <Zap className={`mr-1 h-3 w-3 ${isViral ? 'fill-white' : ''}`} />
                       {isViral ? 'POST (VIRAL BOOST!)' : 'Create Post'}
@@ -142,7 +141,8 @@ export const SubredditList = () => {
                         variant="outline"
                         size="sm"
                         className="flex-1 text-[10px] h-8 border-orange-500/50 hover:bg-orange-500/10"
-                        onClick={() => clearModQueue(sub.id)}
+                        onClick={() => startAction('modqueue', { subredditId: sub.id })}
+                        disabled={!!activeAction}
                       >
                         <ShieldAlert className="mr-1 h-3 w-3 text-orange-500" />
                         Mod Queue
@@ -151,8 +151,8 @@ export const SubredditList = () => {
                     <Button
                       className={`flex-[2] transition-all h-8 text-[10px] ${canAfford && !sub.unlocked ? 'animate-bounce' : ''}`}
                       variant={canAfford ? "default" : "outline"}
-                      disabled={!canAfford}
-                      onClick={() => upgradeSubreddit(sub.id)}
+                      disabled={!canAfford || !!activeAction}
+                      onClick={() => startAction('levelup', { subredditId: sub.id })}
                       data-testid={`subreddit-upgrade-btn-${sub.id}`}
                     >
                       <ArrowUpCircle className="mr-1 h-3 w-3" />

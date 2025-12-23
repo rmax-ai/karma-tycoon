@@ -8,11 +8,11 @@ Tiers are unlocked based on your **Lifetime Karma**. Even if you spend your Karm
 
 | Tier | Name | Lifetime Karma | Max Energy | Recharge | Click Power | Focus |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | The Basics | 0 | 50 | 1s | 1x | Initial growth and click power. |
-| 2 | Community Mgmt | 1,000 | 30 | 10s | 20x | Efficiency and basic automation. |
-| 3 | Viral Growth | 100,000 | 15 | 1m | 500x | Events and engagement. |
-| 4 | Platform Dom. | 100,000,000 | 5 | 5m | 25,000x | Global influence. |
-| 5 | The Front Page | 10,000,000,000,000 | 1 | 20m | 1,000,000x | End-game scaling. |
+| 1 | The Basics | 0 | 100 | 1s | 1x | Initial growth and click power. |
+| 2 | Community Mgmt | 1,000 | 80 | 5s | 20x | Efficiency and basic automation. |
+| 3 | Viral Growth | 100,000 | 60 | 20s | 500x | Events and engagement. |
+| 4 | Platform Dom. | 100,000,000 | 40 | 1m | 25,000x | Global influence. |
+| 5 | The Front Page | 10,000,000,000,000 | 20 | 5m | 1,000,000x | End-game scaling. |
 
 ## Tier Details
 

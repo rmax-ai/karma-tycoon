@@ -65,12 +65,26 @@ export interface TierInfo {
 }
 
 export const TIER_THRESHOLDS: TierInfo[] = [
-  { tier: 1, name: 'The Basics', minKarma: 0, maxKarma: 1e3, maxPostSlots: 3, maxEnergy: 50, rechargeRate: 1, clickPowerMultiplier: 1 },
-  { tier: 2, name: 'Community Management', minKarma: 1e3, maxKarma: 1e5, maxPostSlots: 5, maxEnergy: 30, rechargeRate: 10, clickPowerMultiplier: 20 },
-  { tier: 3, name: 'Viral Growth', minKarma: 1e5, maxKarma: 1e8, maxPostSlots: 10, maxEnergy: 15, rechargeRate: 60, clickPowerMultiplier: 500 },
-  { tier: 4, name: 'Platform Dominance', minKarma: 1e8, maxKarma: 1e13, maxPostSlots: 20, maxEnergy: 5, rechargeRate: 300, clickPowerMultiplier: 25000 },
-  { tier: 5, name: 'The Front Page', minKarma: 1e13, maxKarma: 1e21, maxPostSlots: 50, maxEnergy: 1, rechargeRate: 1200, clickPowerMultiplier: 1000000 },
+  { tier: 1, name: 'The Basics', minKarma: 0, maxKarma: 1e3, maxPostSlots: 3, maxEnergy: 100, rechargeRate: 1, clickPowerMultiplier: 1 },
+  { tier: 2, name: 'Community Management', minKarma: 1e3, maxKarma: 1e5, maxPostSlots: 5, maxEnergy: 80, rechargeRate: 5, clickPowerMultiplier: 20 },
+  { tier: 3, name: 'Viral Growth', minKarma: 1e5, maxKarma: 1e8, maxPostSlots: 10, maxEnergy: 60, rechargeRate: 20, clickPowerMultiplier: 500 },
+  { tier: 4, name: 'Platform Dominance', minKarma: 1e8, maxKarma: 1e13, maxPostSlots: 20, maxEnergy: 40, rechargeRate: 60, clickPowerMultiplier: 25000 },
+  { tier: 5, name: 'The Front Page', minKarma: 1e13, maxKarma: 1e21, maxPostSlots: 50, maxEnergy: 20, rechargeRate: 300, clickPowerMultiplier: 1000000 },
 ];
+
+export type ActionType = 'post' | 'upgrade' | 'levelup' | 'modqueue';
+
+export interface ActiveAction {
+  type: ActionType;
+  duration: number;
+  remainingTime: number;
+  label: string;
+  data: {
+    subredditId?: string;
+    upgradeId?: string;
+    qualityMultiplier?: number;
+  };
+}
 
 export interface GameState {
   totalKarma: number;
@@ -85,12 +99,7 @@ export interface GameState {
   karmaAccumulator: number;
   isGameOver: boolean;
   gracePeriod: number;
-  crafting: {
-    duration: number;
-    remainingTime: number;
-    qualityMultiplier: number;
-    subredditId?: string;
-  } | null;
+  activeAction: ActiveAction | null;
   currentKpsBreakdown: KpsBreakdownData;
 }
 
@@ -109,7 +118,7 @@ export interface GameActions {
   purchaseUpgrade: (id: string) => void;
   clearModQueue: (id: string) => void;
   tick: (delta: number) => void;
-  startCrafting: (qualityMultiplier: number, subredditId?: string) => void;
+  startAction: (type: ActionType, data: ActiveAction['data']) => void;
   triggerCelebration: (type: CelebrationType) => void;
   removeCelebration: (id: string) => void;
   resetGame: () => void;
@@ -194,7 +203,7 @@ export const useGameStore = create<GameStore>()(
       karmaAccumulator: 0,
       isGameOver: false,
       gracePeriod: 0,
-      crafting: null,
+      activeAction: null,
       currentKpsBreakdown: {
         subreddits: [],
         passiveUpgradeMultiplier: 1,
@@ -220,34 +229,64 @@ export const useGameStore = create<GameStore>()(
         }));
       },
 
-      startCrafting: (qualityMultiplier: number, subredditId?: string) => {
+      startAction: (type: ActionType, data: ActiveAction['data']) => {
         const state = get();
-        if (state.crafting) return; // Already crafting
+        if (state.activeAction) return;
 
         const lifetimeKarma = state.lifetimeKarma;
         const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
-        
-        if (state.activePosts.length >= currentTier.maxPostSlots) {
-          return; // Limit reached
+        const tier = currentTier.tier;
+
+        let energyCost = 0;
+        let duration = 0;
+        let label = '';
+
+        switch (type) {
+          case 'post':
+            energyCost = 1 * tier;
+            duration = 3 + Math.random() * 27; // 3-30s
+            const sub = state.subreddits.find(s => s.id === data.subredditId);
+            label = `Creating post in ${sub?.name || 'a subreddit'}...`;
+            if (state.activePosts.length >= currentTier.maxPostSlots) return;
+            break;
+          case 'upgrade':
+            energyCost = 2 * tier;
+            duration = 3 + Math.random() * 10; // 3-13s
+            const upgrade = state.upgrades.find(u => u.id === data.upgradeId);
+            label = `Purchasing ${upgrade?.name || 'upgrade'}...`;
+            if (!upgrade || upgrade.purchased || state.totalKarma < upgrade.cost) return;
+            set({ totalKarma: state.totalKarma - upgrade.cost });
+            break;
+          case 'levelup':
+            energyCost = 3 * tier;
+            duration = 10 + Math.random() * 50; // 10-60s
+            const levelSub = state.subreddits.find(s => s.id === data.subredditId);
+            label = `Leveling up ${levelSub?.name || 'subreddit'}...`;
+            if (!levelSub) return;
+            const levelCost = Math.floor(levelSub.baseCost * Math.pow(1.15, levelSub.level));
+            if (state.totalKarma < levelCost) return;
+            set({ totalKarma: state.totalKarma - levelCost });
+            break;
+          case 'modqueue':
+            energyCost = 2 * tier;
+            duration = 30 + Math.random() * 30; // 30-60s
+            const modSub = state.subreddits.find(s => s.id === data.subredditId);
+            label = `Clearing mod queue for ${modSub?.name || 'subreddit'}...`;
+            if (!modSub) return;
+            break;
         }
 
-        if (state.clickEnergy < 1) {
-          return; // Not enough energy
-        }
+        if (state.clickEnergy < energyCost) return;
 
-        const min = 3;
-        const max = 15;
-        // Positively skewed: more likely to be near min
-        const duration = min + (max - min) * Math.pow(Math.random(), 2);
-        
         set({
-          crafting: {
+          activeAction: {
+            type,
             duration,
             remainingTime: duration,
-            qualityMultiplier,
-            subredditId
+            label,
+            data
           },
-          clickEnergy: state.clickEnergy - 1
+          clickEnergy: state.clickEnergy - energyCost
         });
       },
 
@@ -256,11 +295,6 @@ export const useGameStore = create<GameStore>()(
         const lifetimeKarma = state.lifetimeKarma;
         const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
         
-        // Note: Energy and slots are checked in startCrafting now, but we keep checks here for safety
-        if (state.activePosts.length >= currentTier.maxPostSlots) {
-          return;
-        }
-
         const unlockedSubs = state.subreddits.filter(s => s.unlocked);
         if (unlockedSubs.length === 0) return;
 
@@ -310,22 +344,14 @@ export const useGameStore = create<GameStore>()(
       },
 
       purchaseSubreddit: (id: string) => {
-        const state = get();
-        const subreddit = state.subreddits.find((s) => s.id === id);
-        if (!subreddit) return;
-
-        const cost = subreddit.baseCost * Math.pow(1.15, subreddit.level);
-        if (state.totalKarma >= cost) {
-          set((state: GameState) => ({
-            totalKarma: state.totalKarma - cost,
-            subreddits: state.subreddits.map((s) =>
-              s.id === id
-                ? { ...s, level: s.level + 1, unlocked: true }
-                : s
-            ),
-          }));
-          get().triggerCelebration('unlock');
-        }
+        set((state: GameState) => ({
+          subreddits: state.subreddits.map((s) =>
+            s.id === id
+              ? { ...s, level: s.level + 1, unlocked: true }
+              : s
+          ),
+        }));
+        get().triggerCelebration('unlock');
       },
 
       upgradeSubreddit: (id: string) => {
@@ -333,42 +359,31 @@ export const useGameStore = create<GameStore>()(
         const subreddit = state.subreddits.find((s) => s.id === id);
         if (!subreddit) return;
 
-        const cost = subreddit.baseCost * Math.pow(1.15, subreddit.level);
-        if (state.totalKarma >= cost) {
-          const isUnlock = subreddit.level === 0;
-          set((state: GameState) => ({
-            totalKarma: state.totalKarma - cost,
-            subreddits: state.subreddits.map((s) => {
-              if (s.id === id) {
-                const newLevel = s.level + 1;
-                let newMultiplier = s.multiplier;
-                // Level Milestones: 25, 50, 100
-                if (newLevel === 25 || newLevel === 50 || newLevel === 100) {
-                  newMultiplier *= 2;
-                }
-                return { ...s, level: newLevel, multiplier: newMultiplier, unlocked: true };
+        const isUnlock = subreddit.level === 0;
+        set((state: GameState) => ({
+          subreddits: state.subreddits.map((s) => {
+            if (s.id === id) {
+              const newLevel = s.level + 1;
+              let newMultiplier = s.multiplier;
+              // Level Milestones: 25, 50, 100
+              if (newLevel === 25 || newLevel === 50 || newLevel === 100) {
+                newMultiplier *= 2;
               }
-              return s;
-            }),
-          }));
-          get().triggerCelebration(isUnlock ? 'unlock' : 'levelup');
-        }
+              return { ...s, level: newLevel, multiplier: newMultiplier, unlocked: true };
+            }
+            return s;
+          }),
+        }));
+        get().triggerCelebration(isUnlock ? 'unlock' : 'levelup');
       },
 
       purchaseUpgrade: (id: string) => {
-        const state = get();
-        const upgrade = state.upgrades.find((u) => u.id === id);
-        if (!upgrade || upgrade.purchased) return;
-
-        if (state.totalKarma >= upgrade.cost) {
-          set((state: GameState) => ({
-            totalKarma: state.totalKarma - upgrade.cost,
-            upgrades: state.upgrades.map((u) =>
-              u.id === id ? { ...u, purchased: true } : u
-            ),
-          }));
-          get().triggerCelebration('upgrade');
-        }
+        set((state: GameState) => ({
+          upgrades: state.upgrades.map((u) =>
+            u.id === id ? { ...u, purchased: true } : u
+          ),
+        }));
+        get().triggerCelebration('upgrade');
       },
 
       clearModQueue: (id: string) => {
@@ -393,7 +408,7 @@ export const useGameStore = create<GameStore>()(
           karmaAccumulator: 0,
           isGameOver: false,
           gracePeriod: 0,
-          crafting: null,
+          activeAction: null,
           currentKpsBreakdown: {
             subreddits: [],
             passiveUpgradeMultiplier: 1,
@@ -416,18 +431,30 @@ export const useGameStore = create<GameStore>()(
         
         if (state.isGameOver) return;
 
-        let nextCrafting = state.crafting ? { ...state.crafting } : null;
-        let postToCreate: { qualityMultiplier: number, subredditId?: string } | null = null;
-
-        // 0. Update crafting
-        if (nextCrafting) {
-          nextCrafting.remainingTime -= delta;
-          if (nextCrafting.remainingTime <= 0) {
-            postToCreate = { 
-              qualityMultiplier: nextCrafting.qualityMultiplier, 
-              subredditId: nextCrafting.subredditId 
-            };
-            nextCrafting = null;
+        let nextAction = state.activeAction ? { ...state.activeAction } : null;
+        
+        // 0. Update active action
+        if (nextAction) {
+          nextAction.remainingTime -= delta;
+          if (nextAction.remainingTime <= 0) {
+            const { type, data } = nextAction;
+            nextAction = null; // Clear before executing to avoid recursion if any action triggers another tick (unlikely but safe)
+            
+            // Execute action completion logic
+            switch (type) {
+              case 'post':
+                get().addKarma(0, data.qualityMultiplier || 1, data.subredditId);
+                break;
+              case 'upgrade':
+                if (data.upgradeId) get().purchaseUpgrade(data.upgradeId);
+                break;
+              case 'levelup':
+                if (data.subredditId) get().upgradeSubreddit(data.subredditId);
+                break;
+              case 'modqueue':
+                if (data.subredditId) get().clearModQueue(data.subredditId);
+                break;
+            }
           }
         }
 
@@ -524,52 +551,6 @@ export const useGameStore = create<GameStore>()(
         const now = Date.now();
         let updatedPosts = state.activePosts.filter(post => (now - post.createdAt) / 1000 < post.duration);
         
-        // Handle post creation from crafting completion
-        if (postToCreate) {
-          const { qualityMultiplier, subredditId } = postToCreate;
-          const lifetimeKarma = state.lifetimeKarma;
-          const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
-          
-          const unlockedSubs = state.subreddits.filter(s => s.unlocked);
-          if (unlockedSubs.length > 0) {
-            const targetSub = subredditId
-              ? state.subreddits.find(s => s.id === subredditId)
-              : unlockedSubs[Math.floor(Math.random() * unlockedSubs.length)];
-            
-            if (targetSub && targetSub.unlocked) {
-              const clickMultiplier = state.upgrades
-                .filter((u) => u.purchased && u.type === 'click')
-                .reduce((acc, u) => acc * u.multiplier, 1);
-
-              const localEvents = state.activeEvents.filter(e => e.subredditId === targetSub.id);
-              const localMultiplier = localEvents.reduce((acc, e) => acc * e.multiplier, 1);
-
-              const basePeakKps = targetSub.karmaPerSecond * (targetSub.level || 1) * targetSub.multiplier * clickMultiplier * localMultiplier;
-              const fatigueMultiplier = 1 - (targetSub.fatigue || 0);
-              const activityMultiplier = 1.0 + 0.5 * Math.sin((2 * Math.PI * (Date.now() / 1000)) / targetSub.activityPeriod + targetSub.activityPhase);
-              const healthMultiplier = targetSub.health < 75 ? (targetSub.health / 75) : 1;
-              const finalPeakKps = basePeakKps * fatigueMultiplier * activityMultiplier * healthMultiplier * (0.8 + Math.random() * 0.7) * qualityMultiplier * currentTier.clickPowerMultiplier;
-
-              const newPost: Post = {
-                id: `post-${Date.now()}-${Math.random()}`,
-                subredditId: targetSub.id,
-                createdAt: Date.now(),
-                peakKps: finalPeakKps,
-                peakTime: (10 + Math.random() * 20) * (qualityMultiplier > 1 ? 1.5 : 1),
-                duration: (60 + Math.random() * 120) * (qualityMultiplier > 1 ? 2 : 1),
-                k: 1.5 + Math.random() * 1.0,
-              };
-
-              updatedPosts = [...updatedPosts, newPost];
-              updatedSubredditsForHealth = updatedSubredditsForHealth.map(s =>
-                s.id === targetSub.id
-                  ? { ...s, fatigue: Math.min(0.8, (s.fatigue || 0) + 0.1) }
-                  : s
-              );
-              get().triggerCelebration('content');
-            }
-          }
-        }
 
         let postIncome = 0;
         updatedPosts.forEach(post => {
@@ -677,7 +658,7 @@ export const useGameStore = create<GameStore>()(
             lastTick: now,
             isGameOver: newIsGameOver,
             gracePeriod: newGracePeriod,
-            crafting: nextCrafting,
+            activeAction: nextAction,
           };
         });
       },
@@ -741,7 +722,7 @@ export const useGameStore = create<GameStore>()(
           clickEnergy: state.clickEnergy !== undefined ? state.clickEnergy : 50,
           isGameOver: state.isGameOver || false,
           gracePeriod: state.gracePeriod || 0,
-          crafting: state.crafting || null,
+          activeAction: state.activeAction || null,
         };
       },
     }
