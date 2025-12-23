@@ -244,14 +244,14 @@ export const useGameStore = create<GameStore>()(
         switch (type) {
           case 'post':
             energyCost = 1 * tier;
-            duration = 3 + Math.random() * 27; // 3-30s
+            duration = 1 + Math.random() * 4; // 1-5s
             const sub = state.subreddits.find(s => s.id === data.subredditId);
             label = `Creating post in ${sub?.name || 'a subreddit'}...`;
             if (state.activePosts.length >= currentTier.maxPostSlots) return;
             break;
           case 'upgrade':
             energyCost = 2 * tier;
-            duration = 3 + Math.random() * 10; // 3-13s
+            duration = 2 + Math.random() * 3; // 2-5s
             const upgrade = state.upgrades.find(u => u.id === data.upgradeId);
             label = `Purchasing ${upgrade?.name || 'upgrade'}...`;
             if (!upgrade || upgrade.purchased || state.totalKarma < upgrade.cost) return;
@@ -259,7 +259,7 @@ export const useGameStore = create<GameStore>()(
             break;
           case 'levelup':
             energyCost = 3 * tier;
-            duration = 10 + Math.random() * 50; // 10-60s
+            duration = 3 + Math.random() * 7; // 3-10s
             const levelSub = state.subreddits.find(s => s.id === data.subredditId);
             label = `Leveling up ${levelSub?.name || 'subreddit'}...`;
             if (!levelSub) return;
@@ -269,7 +269,7 @@ export const useGameStore = create<GameStore>()(
             break;
           case 'modqueue':
             energyCost = 2 * tier;
-            duration = 30 + Math.random() * 30; // 30-60s
+            duration = 5 + Math.random() * 10; // 5-15s
             const modSub = state.subreddits.find(s => s.id === data.subredditId);
             label = `Clearing mod queue for ${modSub?.name || 'subreddit'}...`;
             if (!modSub) return;
