@@ -574,7 +574,7 @@ export const useGameStore = create<GameStore>()(
         let postIncome = 0;
         updatedPosts.forEach(post => {
           const t = (now - post.createdAt) / 1000;
-          const ratio = t / post.peakTime;
+          const ratio = Math.max(0, t / post.peakTime);
           const kps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
           postIncome += kps * delta;
         });

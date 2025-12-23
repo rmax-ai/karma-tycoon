@@ -13,6 +13,7 @@ export interface SubredditKpsBreakdown {
   synergyMultiplier: number;
   localMultiplier: number;
   finalKps: number;
+  postKps: number;
 }
 
 export interface KpsBreakdownData {
@@ -74,28 +75,35 @@ export const calculateKpsBreakdown = (
         healthMultiplier,
         synergyMultiplier,
         localMultiplier,
-        finalKps
+        finalKps,
+        postKps: 0 // Will be populated below
       };
     });
 
   const passiveKps = subredditsWithKps.reduce((acc, sub) => acc + sub.finalKps, 0);
 
-  const postKps = activePosts.reduce((acc, post) => {
+  let totalPostKps = 0;
+  activePosts.forEach((post) => {
     const t = (now - post.createdAt) / 1000;
-    const ratio = t / post.peakTime;
+    const ratio = Math.max(0, t / post.peakTime);
     const kps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
-    return acc + kps;
-  }, 0);
+    totalPostKps += kps;
+
+    const subBreakdown = subredditsWithKps.find(s => s.id === post.subredditId);
+    if (subBreakdown) {
+      subBreakdown.postKps += kps;
+    }
+  });
 
   // Note: postKps already includes some multipliers from addKarma, but tick() multiplies it again by passiveUpgradeMultiplier and globalMultiplier
   // We follow the tick() logic here for consistency
-  const totalKps = (passiveKps + postKps) * passiveUpgradeMultiplier * globalMultiplier;
+  const totalKps = (passiveKps + totalPostKps) * passiveUpgradeMultiplier * globalMultiplier;
 
   return {
     subreddits: subredditsWithKps,
     passiveUpgradeMultiplier,
     globalMultiplier,
-    postKps,
+    postKps: totalPostKps,
     totalKps
   };
 };

@@ -39,7 +39,7 @@ export const SubredditList = () => {
         const subEventMultiplier = viralEvent ? viralEvent.multiplier : 1;
         
         const subBreakdown = breakdown.subreddits.find(s => s.id === sub.id);
-        const kps = subBreakdown ? subBreakdown.finalKps : 0;
+        const kps = subBreakdown ? ((subBreakdown.finalKps || 0) + (subBreakdown.postKps || 0)) * (breakdown.passiveUpgradeMultiplier || 1) * (breakdown.globalMultiplier || 1) : 0;
         const isViral = subEventMultiplier > 1;
 
         const activityMultiplier = subBreakdown ? subBreakdown.activityMultiplier : 1;

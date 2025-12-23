@@ -41,8 +41,13 @@ export const Dashboard = () => {
   const { totalKps, postKps, passiveUpgradeMultiplier, globalMultiplier } = breakdown;
 
   const topSubreddits = useMemo(() => [...breakdown.subreddits]
-    .sort((a, b) => b.finalKps - a.finalKps)
-    .slice(0, 5), [breakdown.subreddits]);
+    .map(sub => ({
+      ...sub,
+      totalSubKps: ((sub.finalKps || 0) + (sub.postKps || 0)) * (passiveUpgradeMultiplier || 1) * (globalMultiplier || 1)
+    }))
+    .filter(sub => sub.totalSubKps > 0)
+    .sort((a, b) => b.totalSubKps - a.totalSubKps)
+    .slice(0, 5), [breakdown.subreddits, passiveUpgradeMultiplier, globalMultiplier]);
 
   const tierProgress = nextTier 
     ? ((lifetimeKarma - currentTier.minKarma) / (currentTier.maxKarma - currentTier.minKarma)) * 100
@@ -198,7 +203,7 @@ export const Dashboard = () => {
                     const t = (now - post.createdAt) / 1000;
                     const tThrottled = Math.max(0, (lastKarmaUpdate - post.createdAt) / 1000);
                     const progress = (t / post.duration) * 100;
-                    const ratio = tThrottled / post.peakTime;
+                    const ratio = Math.max(0, tThrottled / post.peakTime);
                     const currentKps = post.peakKps * Math.pow(ratio, post.k) * Math.exp(post.k * (1 - ratio));
                     
                     return (
@@ -240,7 +245,7 @@ export const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {topSubreddits.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">No subreddits owned yet.</p>
+                <p className="text-sm text-muted-foreground text-center py-8">No active subreddits.</p>
               ) : (
                 topSubreddits.map((sub, index) => (
                   <div key={sub.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
@@ -253,10 +258,10 @@ export const Dashboard = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-xs font-bold text-orange-600">
-                        {formatKarma(sub.finalKps * passiveUpgradeMultiplier * globalMultiplier)} KPS
+                        {formatKarma(sub.totalSubKps)} KPS
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        {(((sub.finalKps * passiveUpgradeMultiplier * globalMultiplier) / totalKps) * 100).toFixed(1)}% of total
+                        {((sub.totalSubKps / totalKps) * 100).toFixed(1)}% of total
                       </div>
                     </div>
                   </div>
