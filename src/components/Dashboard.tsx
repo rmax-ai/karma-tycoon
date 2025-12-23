@@ -99,43 +99,28 @@ export const Dashboard = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-6 space-y-6">
-            <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Karma</p>
-              <motion.h2 
-                key={Math.floor(totalKarma)}
-                initial={{ scale: 1.1 }}
-                animate={{ scale: 1 }}
-                className="text-5xl font-extrabold text-orange-600 tabular-nums"
-                data-testid="total-karma"
-              >
-                {formatKarma(totalKarma)}
-              </motion.h2>
-            </div>
-            
-            <div className="w-full max-w-md space-y-2">
-              <div className="flex justify-between text-xs font-medium text-muted-foreground uppercase tracking-tighter">
-                <span>Tier {currentTier.tier}: {currentTier.name}</span>
-                {nextTier && <span>Next: {nextTier.name}</span>}
-              </div>
-              <Progress value={tierProgress} className="h-2" />
-              <p className="text-[10px] text-center text-muted-foreground">
-                {formatKarma(lifetimeKarma)} / {formatKarma(currentTier.maxKarma)} Lifetime Karma
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center space-y-1 text-muted-foreground">
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold text-foreground text-xl">{formatKarma(totalKps)}</span>
-                <span>Karma / second</span>
+          <div className="flex flex-col items-center justify-center py-6 space-y-8">
+            {/* 1. Highlighted KPS */}
+            <div className="flex flex-col items-center space-y-2">
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Karma / Second</p>
+              <div className="flex items-center space-x-3">
+                <motion.h2 
+                  key={Math.floor(totalKps)}
+                  initial={{ scale: 1.1 }}
+                  animate={{ scale: 1 }}
+                  className="text-5xl font-extrabold text-orange-600 tabular-nums"
+                >
+                  {formatKarma(totalKps)}
+                </motion.h2>
                 <KpsBreakdown />
               </div>
-              <div className="text-[10px] flex gap-4">
+              <div className="text-[10px] flex gap-4 text-muted-foreground">
                 <span>Passive: {formatKarma(breakdown.subreddits.reduce((acc, s) => acc + s.finalKps, 0) * passiveUpgradeMultiplier * globalMultiplier)}</span>
                 <span>Active Posts: {formatKarma(postKps * passiveUpgradeMultiplier * globalMultiplier)}</span>
               </div>
             </div>
 
+            {/* 2. Create Content Button */}
             <div className="relative w-full max-w-xs space-y-4">
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -178,6 +163,32 @@ export const Dashboard = () => {
                   </motion.span>
                 ))}
               </AnimatePresence>
+            </div>
+
+            {/* 3. Normal Size Total Karma */}
+            <div className="text-center">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Karma</p>
+              <motion.h3 
+                key={Math.floor(totalKarma)}
+                initial={{ opacity: 0.8 }}
+                animate={{ opacity: 1 }}
+                className="text-2xl font-bold text-foreground tabular-nums"
+                data-testid="total-karma"
+              >
+                {formatKarma(totalKarma)}
+              </motion.h3>
+            </div>
+            
+            {/* 4. Tier Accounting */}
+            <div className="w-full max-w-md space-y-2">
+              <div className="flex justify-between text-[10px] font-medium text-muted-foreground uppercase tracking-tighter">
+                <span>Tier {currentTier.tier}: {currentTier.name}</span>
+                {nextTier && <span>Next: {nextTier.name}</span>}
+              </div>
+              <Progress value={tierProgress} className="h-1.5" />
+              <p className="text-[10px] text-center text-muted-foreground">
+                {formatKarma(lifetimeKarma)} / {formatKarma(currentTier.maxKarma)} Lifetime Karma
+              </p>
             </div>
           </div>
         </CardContent>
