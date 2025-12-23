@@ -83,7 +83,17 @@ export interface ActiveAction {
     subredditId?: string;
     upgradeId?: string;
     qualityMultiplier?: number;
+    isViral?: boolean;
   };
+}
+
+export interface CandleData {
+  time: number; // Unix timestamp in seconds
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
 export interface GameState {
@@ -108,6 +118,9 @@ export interface GameState {
   hasCompletedTour: boolean;
   isTourActive: boolean;
   currentTourStep: number;
+  kpsHistory: CandleData[];
+  currentCandle: CandleData | null;
+  chartTimeframe: number; // in seconds
 }
 
 export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue';
@@ -136,6 +149,7 @@ export interface GameActions {
   prevTourStep: () => void;
   completeTour: () => void;
   skipTour: () => void;
+  setChartTimeframe: (seconds: number) => void;
 }
 
 export type GameStore = GameState & GameActions & { celebrations: Celebration[] };
@@ -231,6 +245,13 @@ export const useGameStore = create<GameStore>()(
       hasCompletedTour: false,
       isTourActive: false,
       currentTourStep: 0,
+      kpsHistory: [],
+      currentCandle: null,
+      chartTimeframe: 60, // 1 minute candles by default
+
+      setChartTimeframe: (seconds: number) => {
+        set({ chartTimeframe: seconds, kpsHistory: [], currentCandle: null });
+      },
 
       triggerCelebration: (type: CelebrationType) => {
         const id = `celebration-${Date.now()}-${Math.random()}`;
@@ -265,9 +286,39 @@ export const useGameStore = create<GameStore>()(
           case 'post':
             energyCost = 1 * tier;
             duration = 1 + Math.random() * 4; // 1-5s
-            const sub = state.subreddits.find(s => s.id === data.subredditId);
-            label = `Creating post in ${sub?.name || 'a subreddit'}...`;
+            
+            const unlockedSubs = state.subreddits.filter(s => s.unlocked);
+            const availableSubs = unlockedSubs.filter(s => {
+              const activeInSub = state.activePosts.filter(p => p.subredditId === s.id).length;
+              let slots = 1;
+              if (s.level >= 100) slots += 1;
+              if (s.level >= 1000) slots += 1;
+              return activeInSub < slots;
+            });
+
+            if (availableSubs.length === 0) {
+              // No subreddits available for posting
+              return;
+            }
+
+            const targetSubId = data.subredditId || availableSubs[Math.floor(Math.random() * availableSubs.length)].id;
+            const targetSub = state.subreddits.find(s => s.id === targetSubId);
+            
+            if (!targetSub) return;
+
+            const activeInTarget = state.activePosts.filter(p => p.subredditId === targetSubId).length;
+            let targetSlots = 1;
+            if (targetSub.level >= 100) targetSlots += 1;
+            if (targetSub.level >= 1000) targetSlots += 1;
+
+            if (activeInTarget >= targetSlots) return;
+
+            const isViral = data.isViral || state.activeEvents.some(e => e.subredditId === targetSubId);
+            label = isViral ? `Crafting viral post in ${targetSub.name}...` : `Creating post in ${targetSub.name}...`;
             if (state.activePosts.length >= currentTier.maxPostSlots) return;
+            
+            // Ensure the action data has the selected subredditId if it was random
+            data.subredditId = targetSubId;
             break;
           case 'upgrade':
             energyCost = 2 * tier;
@@ -444,6 +495,9 @@ export const useGameStore = create<GameStore>()(
           hasCompletedTour: false,
           isTourActive: false,
           currentTourStep: 0,
+          kpsHistory: [],
+          currentCandle: null,
+          chartTimeframe: 60,
         });
         if (typeof window !== 'undefined') {
           window.location.reload();
@@ -682,6 +736,8 @@ export const useGameStore = create<GameStore>()(
           let nextLastKarmaUpdate = state.lastKarmaUpdate || now;
 
           let nextKpsBreakdown = state.currentKpsBreakdown;
+          let nextKpsHistory = state.kpsHistory;
+          let nextCurrentCandle = state.currentCandle;
 
           // Update karma values and KPS breakdown only every second
           if (timeSinceLastUpdate >= 1000) {
@@ -700,6 +756,33 @@ export const useGameStore = create<GameStore>()(
               currentTierForKps,
               now
             );
+
+            // Candle Logic
+            const currentKps = nextKpsBreakdown.totalKps;
+            const candleTime = Math.floor(now / 1000 / state.chartTimeframe) * state.chartTimeframe;
+            
+            if (!nextCurrentCandle || nextCurrentCandle.time !== candleTime) {
+              if (nextCurrentCandle) {
+                nextKpsHistory = [...nextKpsHistory, nextCurrentCandle];
+                if (nextKpsHistory.length > 200) nextKpsHistory = nextKpsHistory.slice(-200);
+              }
+              nextCurrentCandle = {
+                time: candleTime,
+                open: currentKps,
+                high: currentKps,
+                low: currentKps,
+                close: currentKps,
+                volume: newAccumulator,
+              };
+            } else {
+              nextCurrentCandle = {
+                ...nextCurrentCandle,
+                high: Math.max(nextCurrentCandle.high, currentKps),
+                low: Math.min(nextCurrentCandle.low, currentKps),
+                close: currentKps,
+                volume: nextCurrentCandle.volume + newAccumulator,
+              };
+            }
           }
 
           const currentTier = TIER_THRESHOLDS.find(t => nextLifetimeKarma >= t.minKarma && nextLifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
@@ -721,6 +804,8 @@ export const useGameStore = create<GameStore>()(
             isGameOver: newIsGameOver,
             gracePeriod: newGracePeriod,
             activeAction: nextAction,
+            kpsHistory: nextKpsHistory,
+            currentCandle: nextCurrentCandle,
           };
         });
       },
@@ -780,6 +865,9 @@ export const useGameStore = create<GameStore>()(
           gameStartedAt: state.gameStartedAt !== undefined ? state.gameStartedAt : Date.now(),
           totalPostsCreated: state.totalPostsCreated !== undefined ? state.totalPostsCreated : 0,
           hasCompletedTour: state.hasCompletedTour !== undefined ? state.hasCompletedTour : false,
+          kpsHistory: state.kpsHistory || [],
+          currentCandle: state.currentCandle || null,
+          chartTimeframe: state.chartTimeframe || 60,
         };
       },
       partialize: (state) => ({
@@ -802,6 +890,9 @@ export const useGameStore = create<GameStore>()(
         gameStartedAt: state.gameStartedAt,
         totalPostsCreated: state.totalPostsCreated,
         hasCompletedTour: state.hasCompletedTour,
+        kpsHistory: state.kpsHistory,
+        currentCandle: state.currentCandle,
+        chartTimeframe: state.chartTimeframe,
       }),
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {

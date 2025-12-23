@@ -1,6 +1,7 @@
 'use client';
 
 import { Dashboard } from '@/components/Dashboard';
+import { KpsChart } from '@/components/KpsChart';
 import { SubredditList } from '@/components/SubredditList';
 import { UpgradesList } from '@/components/UpgradesList';
 import { useGameLoop } from '@/hooks/useGameLoop';
@@ -27,6 +28,10 @@ export default function Home() {
       <div className="space-y-8">
         <Dashboard />
         
+        <CollapsibleSection title="Market Analytics" defaultOpen={true}>
+          <KpsChart />
+        </CollapsibleSection>
+
         <CollapsibleSection title="Global Upgrades">
           <UpgradesList />
         </CollapsibleSection>

@@ -46,6 +46,12 @@ export const SubredditList = () => {
         const fatigueLevel = (sub.fatigue || 0) * 100;
         const health = sub.health || 100;
 
+        const activeInSub = activePosts.filter(p => p.subredditId === sub.id).length;
+        let subSlots = 1;
+        if (sub.level >= 100) subSlots += 1;
+        if (sub.level >= 1000) subSlots += 1;
+        const isSubFull = activeInSub >= subSlots;
+
         return (
           <motion.div
             key={sub.id}
@@ -129,14 +135,14 @@ export const SubredditList = () => {
                       size="sm"
                       className={`w-full text-[10px] h-8 ${isViral ? 'bg-orange-500 hover:bg-orange-600 animate-pulse' : ''}`}
                       onClick={() => startAction('post', { subredditId: sub.id, qualityMultiplier: 1 })}
-                      disabled={activePosts.length >= currentTier.maxPostSlots || !!activeAction}
+                      disabled={activePosts.length >= currentTier.maxPostSlots || !!activeAction || isSubFull}
                     >
                       <Zap className={`mr-1 h-3 w-3 ${isViral ? 'fill-white' : ''}`} />
-                      {isViral ? 'POST (VIRAL BOOST!)' : 'Create Post'}
+                      {isSubFull ? 'Sub Full' : isViral ? 'POST (VIRAL BOOST!)' : 'Create Post'}
                     </Button>
                   )}
                   <div className="flex gap-2">
-                    {health < 80 && (
+                    {sub.unlocked && health < 80 && (
                       <Button
                         variant="outline"
                         size="sm"

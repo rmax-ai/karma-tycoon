@@ -11,6 +11,7 @@ import { TrendingUp, MousePointer2, Info, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TierInfoModal } from './TierInfoModal';
 import { KpsBreakdown } from './KpsBreakdown';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface FloatingText {
   id: number;
@@ -53,6 +54,16 @@ export const Dashboard = () => {
     ? ((lifetimeKarma - currentTier.minKarma) / (currentTier.maxKarma - currentTier.minKarma)) * 100
     : 100;
 
+  const availableSubs = useMemo(() => subreddits.filter(s => s.unlocked).filter(s => {
+    const activeInSub = activePosts.filter(p => p.subredditId === s.id).length;
+    let slots = 1;
+    if (s.level >= 100) slots += 1;
+    if (s.level >= 1000) slots += 1;
+    return activeInSub < slots;
+  }), [subreddits, activePosts]);
+
+  const noSubsAvailable = availableSubs.length === 0 && subreddits.some(s => s.unlocked);
+
   const handleCreateContent = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (activePosts.length >= currentTier.maxPostSlots || activeAction) return;
     
@@ -69,9 +80,9 @@ export const Dashboard = () => {
       value: 'Crafting Started...',
     };
 
-    setFloatingTexts((prev) => [...prev, newText]);
+    setFloatingTexts((prev: FloatingText[]) => [...prev, newText]);
     setTimeout(() => {
-      setFloatingTexts((prev) => prev.filter((t) => t.id !== newText.id));
+      setFloatingTexts((prev: FloatingText[]) => prev.filter((t: FloatingText) => t.id !== newText.id));
     }, 1000);
   };
 
@@ -127,24 +138,36 @@ export const Dashboard = () => {
                 <Progress value={(activePosts.length / currentTier.maxPostSlots) * 100} className="h-1" />
               </div>
 
-              <Button
-                size="lg"
-                className="w-full h-16 text-xl font-bold bg-orange-500 hover:bg-orange-600 transition-all active:scale-95 relative overflow-hidden"
-                onClick={handleCreateContent}
-                disabled={activePosts.length >= currentTier.maxPostSlots || !!activeAction}
-                data-testid="create-content-btn"
-                data-tour="create-content"
-              >
-                <MousePointer2 className="mr-2 h-6 w-6" />
-                {activePosts.length >= currentTier.maxPostSlots
-                  ? 'Slots Full'
-                  : activeAction
-                    ? 'Busy...'
-                    : 'Create Content'}
-              </Button>
+              <Popover open={noSubsAvailable && !activeAction && activePosts.length < currentTier.maxPostSlots}>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="lg"
+                    className="w-full h-16 text-xl font-bold bg-orange-500 hover:bg-orange-600 transition-all active:scale-95 relative overflow-hidden"
+                    onClick={handleCreateContent}
+                    disabled={activePosts.length >= currentTier.maxPostSlots || !!activeAction || noSubsAvailable}
+                    data-testid="create-content-btn"
+                    data-tour="create-content"
+                  >
+                    <MousePointer2 className="mr-2 h-6 w-6" />
+                    {activePosts.length >= currentTier.maxPostSlots
+                      ? 'Slots Full'
+                      : activeAction
+                        ? 'Busy...'
+                        : noSubsAvailable
+                          ? 'Subs Full'
+                          : 'Create Content'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-4 bg-destructive text-destructive-foreground border-none shadow-xl">
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold">No Subreddits Available!</p>
+                    <p className="text-xs opacity-90">All your subreddits are currently at their post limit. Unlock more subreddits or level them up to 100/1000 to increase their capacity.</p>
+                  </div>
+                </PopoverContent>
+              </Popover>
               
               <AnimatePresence>
-                {floatingTexts.map((text) => (
+                {floatingTexts.map((text: FloatingText) => (
                   <motion.span
                     key={text.id}
                     initial={{ opacity: 1, y: text.y, x: text.x }}
@@ -252,7 +275,7 @@ export const Dashboard = () => {
               {topSubreddits.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">No active subreddits.</p>
               ) : (
-                topSubreddits.map((sub, index) => (
+                topSubreddits.map((sub: any, index: number) => (
                   <div key={sub.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-bold text-muted-foreground w-4">{index + 1}.</span>
