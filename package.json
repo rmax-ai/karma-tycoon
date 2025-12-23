@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "An incremental game about growing a network of subreddits to earn Karma.",
   "main": "index.js",
-  "author": "R. Max Espinoza <me@rmax.ai>",
+  "author": "R. Max Espinoza <hey@rmax.dev>",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
