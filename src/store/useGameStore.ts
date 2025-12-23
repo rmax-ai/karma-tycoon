@@ -427,7 +427,7 @@ export const useGameStore = create<GameStore>()(
       },
 
       tick: (delta: number) => {
-        const state = get();
+        let state = get();
         
         if (state.isGameOver) return;
 
@@ -455,6 +455,8 @@ export const useGameStore = create<GameStore>()(
                 if (data.subredditId) get().clearModQueue(data.subredditId);
                 break;
             }
+            // Refresh state after action completion to ensure subsequent calculations use updated data
+            state = get();
           }
         }
 
