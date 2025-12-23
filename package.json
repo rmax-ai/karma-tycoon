@@ -1,16 +1,22 @@
 {
-  "name": "reddit-game",
+  "name": "karma-tycoon",
   "version": "1.0.0",
-  "description": "",
+  "description": "An incremental game about growing a network of subreddits to earn Karma.",
   "main": "index.js",
+  "author": "R. Max Espinoza <me@rmax.ai>",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "incremental",
+    "idle",
+    "game",
+    "nextjs",
+    "reddit"
+  ],
   "license": "ISC",
   "type": "module",
   "dependencies": {
