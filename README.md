@@ -2,6 +2,9 @@
 
 Karma Tycoon is an incremental (idle) game built with Next.js where players grow a network of subreddits to earn "Karma". The goal is to reach the front page of the internet and dominate the karma leaderboards.
 
+## 🎮 Live Demo
+
+Play the game now: [**karma-tycoon.rmax.app**](https://karma-tycoon.rmax.app)
 
 ## Features
 
