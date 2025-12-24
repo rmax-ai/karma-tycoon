@@ -37,10 +37,14 @@ export const ViralEventPopup = () => {
   const isNegative = currentEvent.isNegative;
   const Icon = isNegative ? (currentEvent.name.includes('Drama') ? Flame : AlertTriangle) : Zap;
   const title = isNegative ? 'Crisis!' : 'Viral Opportunity!';
-  const subtext = isNegative 
+  const subtext = isNegative
     ? currentEvent.description || 'Something went wrong...'
     : 'Post in this subreddit now to claim the boost!';
-
+  
+  const formatMultiplier = (value: number) => Number.isInteger(value) ? value.toString() : value.toFixed(1);
+  const energyMultiplierValue = currentEvent.energyMultiplier ?? 1;
+  const showsEnergyBoost = !isNegative && energyMultiplierValue > 1;
+  
   return (
     <AnimatePresence>
       {show && (
@@ -82,6 +86,11 @@ export const ViralEventPopup = () => {
                   )}>
                     {subtext}
                   </p>
+                  {showsEnergyBoost && (
+                    <p className="text-[11px] font-semibold mt-1 text-orange-700 dark:text-orange-300">
+                      Energy recharge ×{formatMultiplier(energyMultiplierValue)}
+                    </p>
+                  )}
                   <div className="mt-3 flex items-center space-x-2">
                     <span className={cn(
                       "text-xs font-bold px-2 py-1 rounded shadow-sm",

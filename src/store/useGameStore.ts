@@ -48,6 +48,7 @@ export interface ViralEvent {
   name: string;
   subredditId?: string;
   multiplier: number;
+  energyMultiplier?: number;
   duration: number; // in seconds
   remainingTime: number;
   isNegative: boolean;
@@ -676,6 +677,7 @@ export const useGameStore = create<GameStore>()(
               name: `Viral Opportunity in ${randomSub.name}!`,
               subredditId: randomSub.id,
               multiplier: finalMultiplier,
+              energyMultiplier: finalMultiplier,
               duration: baseDuration * viralDurationMultiplier,
               remainingTime: baseDuration * viralDurationMultiplier,
               isNegative: false,
@@ -712,6 +714,7 @@ export const useGameStore = create<GameStore>()(
               description: randomCrisis.description,
               subredditId: targetSubId,
               multiplier: randomCrisis.multiplier,
+              energyMultiplier: 1,
               duration: randomCrisis.duration,
               remainingTime: randomCrisis.duration,
               isNegative: true,
@@ -862,7 +865,11 @@ export const useGameStore = create<GameStore>()(
             .filter((u) => u.purchased)
             .reduce((acc, u) => acc * (ENERGY_RECHARGE_EFFECTS[u.id] ?? 1), 1);
 
-          const energyGain = (delta / currentTier.rechargeRate) * energyRechargeMultiplier;
+          const eventEnergyMultiplier = state.activeEvents
+            .filter((event) => !event.isNegative)
+            .reduce((acc, event) => acc * (event.energyMultiplier ?? 1), 1);
+ 
+          const energyGain = (delta / currentTier.rechargeRate) * energyRechargeMultiplier * eventEnergyMultiplier;
           const newEnergy = Math.min(currentTier.maxEnergy, state.clickEnergy + energyGain);
 
           return {
