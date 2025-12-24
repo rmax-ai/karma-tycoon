@@ -77,6 +77,16 @@ export const TIER_THRESHOLDS: TierInfo[] = [
 
 export type ActionType = 'post' | 'upgrade' | 'levelup' | 'modqueue';
 
+export const ACTION_ENERGY_COSTS = {
+  post: {
+    random: 2,
+    viral: 4,
+  },
+  upgrade: 4,
+  levelup: 4,
+  modqueue: 2,
+};
+
 export interface ActiveAction {
   type: ActionType;
   duration: number;
@@ -189,31 +199,49 @@ const INITIAL_SUBREDDITS: Subreddit[] = [
 const INITIAL_UPGRADES: GlobalUpgrade[] = [
   // Tier 1 (0 - 1k) - 5 mins
   { id: 'automod', name: 'Automod', description: 'Reduces spam and increases efficiency. +10% KPS', baseCost: 50, multiplier: 1.1, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
-  { id: 'meme-factory', name: 'Meme Factory', description: 'Industrial grade memes. 2x Click Power', baseCost: 100, multiplier: 2, purchased: false, type: 'click', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  { id: 'kps-lift', name: 'KPS Lift', description: 'Micro-optimizations across your network. +10% KPS', baseCost: 1000, multiplier: 1.1, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
   { id: 'community-outreach', name: 'Community Outreach', description: 'Engage with other communities to grow your reach. +10% KPS', baseCost: 900, multiplier: 1.1, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
   { id: 'better-titles', name: 'Better Titles', description: 'Catchier titles lead to more clicks. +15% KPS', baseCost: 500, multiplier: 1.15, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
-  { id: 'clickbait-mastery', name: 'Clickbait Mastery', description: "You won't believe how much karma you'll get! 3x Click Power", baseCost: 750, multiplier: 3, purchased: false, type: 'click', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  { id: 'community-synergy', name: 'Community Synergy', description: 'Coordinated posting keeps the energy reservoir topped off. +10% Energy Recharge', baseCost: 1000, multiplier: 1.1, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  { id: 'tier1-combo', name: 'Tier 1 Combo Boost', description: 'Stacked rituals keep your energy tank topped while delivering +10% KPS and 2x recharge for five minutes.', baseCost: 2500, multiplier: 1.1, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
   // Tier 2 (1k - 100k) - 10 mins
   { id: 'dedicated-mods', name: 'Dedicated Mods', description: '24/7 moderation for your communities. +50% KPS', baseCost: 5000, multiplier: 1.5, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
-  { id: 'subreddit-wiki', name: 'Subreddit Wiki', description: 'Better organization for new users. 2x KPS', baseCost: 15000, multiplier: 2, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
-  { id: 'discord-server', name: 'Discord Server', description: 'Build a community outside of Reddit. 3x KPS', baseCost: 40000, multiplier: 3, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
+  { id: 'subreddit-audit', name: 'Subreddit Audit', description: 'Optimize policies, onboarding, and layout. +20% KPS', baseCost: 100000, multiplier: 1.2, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
+  { id: 'community-partnerships', name: 'Community Partnerships', description: 'Partnered communities share notifications so energy refills faster. +20% Energy Recharge', baseCost: 100000, multiplier: 1.2, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
   { id: 'engagement-analytics', name: 'Engagement Analytics', description: 'Deep dive into user behavior for better targeting. +20% KPS', baseCost: 95000, multiplier: 1.2, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
+  { id: 'tier2-combo', name: 'Tier 2 Momentum Combo', description: 'Community partnerships now feel like a conveyor belt—+20% KPS and 3x energy recharge for ten minutes.', baseCost: 250000, multiplier: 1.2, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
   // Tier 3 (100k - 100M) - 20 mins
-  { id: 'trending-tab', name: 'Trending Tab', description: 'Get featured on the trending tab more often. 2x Viral Duration', baseCost: 500000, multiplier: 2, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
-  { id: 'front-page-feature', name: 'Front Page Feature', description: 'A guaranteed spot on the front page. 5x Viral Multiplier', baseCost: 2000000, multiplier: 5, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  { id: 'trending-tab', name: 'Trending Tab', description: 'Get featured on the trending tab more often. +30% Viral Duration', baseCost: 500000, multiplier: 1.3, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  { id: 'momentum-lab', name: 'Momentum Lab', description: 'Data experiments keep energy flowing through each subreddit. +30% Energy Recharge', baseCost: 100000000, multiplier: 1.3, purchased: false, type: 'passive', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
   { id: 'content-syndication', name: 'Content Syndication', description: 'Automatically distribute content across the network. +30% KPS', baseCost: 95000000, multiplier: 1.3, purchased: false, type: 'passive', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
-  { id: 'viral-loop', name: 'Viral Loop', description: 'One viral post leads to another. 5x Viral Frequency', baseCost: 50000000, multiplier: 5, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  { id: 'tiered-amplifiers', name: 'Tiered Amplifiers', description: 'Coordinate launches across tiers. +30% KPS', baseCost: 100000000, multiplier: 1.3, purchased: false, type: 'passive', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  { id: 'tier3-combo', name: 'Tier 3 Viral Sync Combo', description: 'Tier 3 energy relay gives you 5x recharge and +50% KPS for twenty minutes of synchronized posting.', baseCost: 150000000000, multiplier: 1.5, purchased: false, type: 'passive', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
   // Tier 4 (100M - 10T) - 30 mins
-  { id: 'algo-optimization', name: 'Algorithm Optimization', description: 'You know exactly what the algorithm wants. 100x KPS', baseCost: 500000000000, multiplier: 100, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
-  { id: 'verified-status', name: 'Verified Status', description: 'Blue checkmarks for everyone! 500x KPS', baseCost: 2000000000000, multiplier: 500, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
-  { id: 'media-empire', name: 'Media Empire', description: 'You own the news cycle. 1000x Click Power', baseCost: 5000000000000, multiplier: 1000, purchased: false, type: 'click', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  { id: 'algo-optimization', name: 'Algorithm Optimization', description: 'You know exactly what the algorithm wants. +40% KPS', baseCost: 150000, multiplier: 1.4, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  { id: 'strategic-harmony', name: 'Strategic Harmony', description: 'Platform-wide initiatives unify messaging. +40% KPS', baseCost: 10000000000000, multiplier: 1.4, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  { id: 'platform-institutes', name: 'Platform Institutes', description: 'Research teams keep the energy returns predictable. +40% Energy Recharge', baseCost: 10000000000000, multiplier: 1.4, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
   { id: 'neural-trend-prediction', name: 'Neural Trend Prediction', description: 'AI-powered forecasting of the next big thing. +40% KPS', baseCost: 9500000000000, multiplier: 1.4, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  { id: 'tier4-combo', name: 'Tier 4 Platform Resonance Combo', description: 'Platform initiatives echo across teams to deliver 8x energy recharge and +70% KPS for thirty minutes.', baseCost: 2500000000000000, multiplier: 1.7, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
   // Tier 5 (10T - 1e21) - 60 mins
-  { id: 'internet-sensation', name: 'Internet Sensation', description: 'Everyone knows your name. 10,000x KPS', baseCost: 100000000000000, multiplier: 10000, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
-  { id: 'cultural-phenomenon', name: 'Cultural Phenomenon', description: 'You are the zeitgeist. 100x Viral Multiplier', baseCost: 500000000000000, multiplier: 100, purchased: false, type: 'event', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
-  { id: 'collective-consciousness', name: 'Collective Consciousness', description: 'Your network becomes the primary source of truth. +50% KPS', baseCost: 950000000000000000, multiplier: 1.5, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
-  { id: 'front-page-internet', name: 'Front Page of the Internet', description: 'You ARE Reddit. 1,000,000x Click Power', baseCost: 10000000000000000, multiplier: 1000000, purchased: false, type: 'click', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'global-momentum', name: 'Global Momentum', description: 'Front page energy keeps momentum steady. +50% KPS', baseCost: 1000000000000000000000, multiplier: 1.5, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'mainstream-media', name: 'Mainstream Media', description: 'TV, Radio, and Newspapers keep energy pouring in. +50% Energy Recharge', baseCost: 300000000000000, multiplier: 1.5, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'collective-consciousness', name: 'Collective Consciousness', description: 'Your network becomes the primary source of truth. +50% Energy Recharge', baseCost: 950000000000000000, multiplier: 1.5, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'cultural-hegemony', name: 'Cultural Hegemony', description: 'Your influence becomes cultural norms. +50% Energy Recharge', baseCost: 1000000000000000000, multiplier: 1.5, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'tier5-combo', name: 'Tier 5 Front Page Ascension Combo', description: 'Front page dominance drives 13x energy recharge and +200% KPS for one hour.', baseCost: 6000000000000000000000, multiplier: 3.0, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
 ];
+
+const ENERGY_RECHARGE_EFFECTS: Record<string, number> = {
+  'community-synergy': 1.1,
+  'community-partnerships': 1.2,
+  'momentum-lab': 1.3,
+  'platform-institutes': 1.4,
+  'cultural-hegemony': 1.5,
+  'tier1-combo': 2,
+  'tier2-combo': 3,
+  'tier3-combo': 5,
+  'tier4-combo': 8,
+  'tier5-combo': 13,
+};
 
 const NEGATIVE_EVENTS = [
   { name: 'Subreddit Drama', description: 'Users are arguing in the comments.', multiplier: 0.5, duration: 45, type: 'local' as const, healthLoss: 0 },
@@ -222,6 +250,7 @@ const NEGATIVE_EVENTS = [
   { name: 'Algorithm Suppression', description: 'The algorithm has suppressed your reach.', multiplier: 0.5, duration: 60, type: 'global' as const, healthLoss: 0 },
   { name: 'Server Outage', description: "Reddit's servers are struggling.", multiplier: 0.05, duration: 15, type: 'global' as const, healthLoss: 0 },
 ];
+const BASE_CRISIS_CHANCE = 0.005;
 
 export const useGameStore = create<GameStore>()(
   persist(
@@ -306,8 +335,7 @@ export const useGameStore = create<GameStore>()(
         let label = '';
 
         switch (type) {
-          case 'post':
-            energyCost = 1 * tier;
+          case 'post': {
             duration = 1 + Math.random() * 4; // 1-5s
             
             const unlockedSubs = state.subreddits.filter(s => s.unlocked);
@@ -318,33 +346,35 @@ export const useGameStore = create<GameStore>()(
               if (s.level >= 1000) slots += 1;
               return activeInSub < slots;
             });
-
+ 
             if (availableSubs.length === 0) {
               // No subreddits available for posting
               return;
             }
-
+ 
             const targetSubId = data.subredditId || availableSubs[Math.floor(Math.random() * availableSubs.length)].id;
             const targetSub = state.subreddits.find(s => s.id === targetSubId);
             
             if (!targetSub) return;
-
+ 
             const activeInTarget = state.activePosts.filter(p => p.subredditId === targetSubId).length;
             let targetSlots = 1;
             if (targetSub.level >= 100) targetSlots += 1;
             if (targetSub.level >= 1000) targetSlots += 1;
-
+ 
             if (activeInTarget >= targetSlots) return;
-
-            const isViral = data.isViral || state.activeEvents.some(e => e.subredditId === targetSubId);
-            label = isViral ? `Crafting viral post in ${targetSub.name}...` : `Creating post in ${targetSub.name}...`;
+ 
+            const isViralPost = data.isViral || state.activeEvents.some(e => e.subredditId === targetSubId);
+            label = isViralPost ? `Crafting viral post in ${targetSub.name}...` : `Creating post in ${targetSub.name}...`;
             if (state.activePosts.length >= currentTier.maxPostSlots) return;
             
-            // Ensure the action data has the selected subredditId if it was random
+            energyCost = isViralPost ? ACTION_ENERGY_COSTS.post.viral : ACTION_ENERGY_COSTS.post.random;
             data.subredditId = targetSubId;
+            data.isViral = isViralPost;
             break;
-          case 'upgrade':
-            energyCost = 2 * tier;
+          }
+          case 'upgrade': {
+            energyCost = ACTION_ENERGY_COSTS.upgrade;
             duration = 2 + Math.random() * 3; // 2-5s
             const upgrade = state.upgrades.find(u => u.id === data.upgradeId);
             label = `Purchasing ${upgrade?.name || 'upgrade'}...`;
@@ -353,8 +383,9 @@ export const useGameStore = create<GameStore>()(
             if (state.spendableKarma < upgradeCost) return;
             set({ spendableKarma: state.spendableKarma - upgradeCost });
             break;
-          case 'levelup':
-            energyCost = 3 * tier;
+          }
+          case 'levelup': {
+            energyCost = ACTION_ENERGY_COSTS.levelup;
             duration = 3 + Math.random() * 7; // 3-10s
             const levelSub = state.subreddits.find(s => s.id === data.subredditId);
             label = `Leveling up ${levelSub?.name || 'subreddit'}...`;
@@ -363,13 +394,15 @@ export const useGameStore = create<GameStore>()(
             if (state.spendableKarma < levelCost) return;
             set({ spendableKarma: state.spendableKarma - levelCost });
             break;
-          case 'modqueue':
-            energyCost = 2 * tier;
+          }
+          case 'modqueue': {
+            energyCost = ACTION_ENERGY_COSTS.modqueue;
             duration = 5 + Math.random() * 10; // 5-15s
             const modSub = state.subreddits.find(s => s.id === data.subredditId);
             label = `Clearing mod queue for ${modSub?.name || 'subreddit'}...`;
             if (!modSub) return;
             break;
+          }
         }
 
         if (state.clickEnergy < energyCost) {
@@ -564,6 +597,9 @@ export const useGameStore = create<GameStore>()(
 
       tick: (delta: number) => {
         let state = get();
+        const currentTierForEvents = TIER_THRESHOLDS.find(t => state.lifetimeKarma >= t.minKarma && state.lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
+        const crisisChanceMultiplier = 1 + (currentTierForEvents.tier - 1) * 0.35;
+        const tierCrisisChance = BASE_CRISIS_CHANCE * crisisChanceMultiplier;
         
         if (state.isGameOver) return;
 
@@ -610,7 +646,7 @@ export const useGameStore = create<GameStore>()(
           .reduce((acc, u) => acc * u.multiplier, 1);
         
         const VIRAL_CHANCE = 0.01 * viralFrequencyMultiplier;
-        const CRISIS_CHANCE = 0.005;
+        const CRISIS_CHANCE = tierCrisisChance;
         const newEvents = [...updatedEvents];
         let updatedSubredditsForHealth = [...state.subreddits];
         
@@ -626,7 +662,7 @@ export const useGameStore = create<GameStore>()(
               .reduce((acc, u) => acc * u.multiplier, 1);
             
             const viralPowerMultiplier = state.upgrades
-              .filter(u => u.purchased && (u.id === 'front-page-feature' || u.id === 'cultural-phenomenon'))
+              .filter(u => u.purchased && (u.id === 'momentum-lab' || u.id === 'cultural-phenomenon'))
               .reduce((acc, u) => acc * u.multiplier, 1);
 
             const baseDuration = 60;
@@ -822,7 +858,11 @@ export const useGameStore = create<GameStore>()(
 
           const currentTier = TIER_THRESHOLDS.find(t => nextLifetimeKarma >= t.minKarma && nextLifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
           
-          const energyGain = delta / currentTier.rechargeRate;
+          const energyRechargeMultiplier = state.upgrades
+            .filter((u) => u.purchased)
+            .reduce((acc, u) => acc * (ENERGY_RECHARGE_EFFECTS[u.id] ?? 1), 1);
+
+          const energyGain = (delta / currentTier.rechargeRate) * energyRechargeMultiplier;
           const newEnergy = Math.min(currentTier.maxEnergy, state.clickEnergy + energyGain);
 
           return {

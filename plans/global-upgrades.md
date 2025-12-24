@@ -12,7 +12,7 @@ This document defines the tiers of global upgrades and subreddits for Karma Tyco
 | `meme-factory` | Meme Factory | Industrial grade memes. | 100 | 2x Click Power | `click` |
 | `influencer-partnership` | Influencer Partnership | Big names are talking about your subs. | 250 | +20% KPS | `passive` |
 | `better-titles` | Better Titles | Catchier titles lead to more clicks. | 500 | +15% KPS | `passive` |
-| `clickbait-mastery` | Clickbait Mastery | You won't believe how much karma you'll get! | 750 | 3x Click Power | `click` |
+| `community-synergy` | Community Synergy | Coordinated posting keeps the energy reservoir topped off. | 1,000 | +10% Energy Recharge | `passive` |
 
 ### Subreddits
 | ID | Name | Base Cost | KPS |
@@ -31,7 +31,7 @@ This document defines the tiers of global upgrades and subreddits for Karma Tyco
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `dedicated-mods` | Dedicated Mods | 24/7 moderation for your communities. | 1,500 | +25% KPS | `passive` |
 | `subreddit-wiki` | Subreddit Wiki | Better organization for new users. | 3,000 | +30% KPS | `passive` |
-| `discord-server` | Discord Server | Build a community outside of Reddit. | 5,000 | +40% KPS | `passive` |
+| `community-partnerships` | Community Partnerships | Partnered communities share notifications so energy refills faster. | 100,000 | +20% Energy Recharge | `passive` |
 | `bot-network` | Bot Network | Automated engagement (the "good" kind). | 8,000 | +50% KPS | `passive` |
 
 ### Subreddits
@@ -50,7 +50,7 @@ This document defines the tiers of global upgrades and subreddits for Karma Tyco
 | ID | Name | Description | Cost | Effect | Type |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `trending-tab` | Trending Tab | Get featured on the trending tab more often. | 15,000 | +50% Viral Duration | `event` |
-| `front-page-feature` | Front Page Feature | A guaranteed spot on the front page. | 30,000 | 2x Viral Multiplier | `event` |
+| `momentum-lab` | Momentum Lab | Data experiments keep energy flowing through each subreddit. | 100,000,000 | +30% Energy Recharge | `passive` |
 | `cross-posting` | Cross-posting Strategy | Share your content across multiple subs. | 60,000 | +100% KPS | `passive` |
 | `viral-loop` | Viral Loop | One viral post leads to another. | 90,000 | 2x Viral Frequency | `event` |
 
@@ -64,14 +64,14 @@ This document defines the tiers of global upgrades and subreddits for Karma Tyco
 ---
 
 ## Tier 4: Platform Dominance (100,000 - 1,000,000 Karma)
-*Focus: Global influence and algorithm manipulation.*
+*Focus: Global influence and energy resilience.*
 
 ### Upgrades
 | ID | Name | Description | Cost | Effect | Type |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `algo-optimization` | Algorithm Optimization | You know exactly what the algorithm wants. | 150,000 | +150% KPS | `passive` |
 | `verified-status` | Verified Status | Blue checkmarks for everyone! | 300,000 | +200% KPS | `passive` |
-| `media-empire` | Media Empire | You own the news cycle. | 600,000 | 5x Click Power | `click` |
+| `platform-institutes` | Platform Institutes | Research teams keep the energy returns predictable. | 10,000,000,000,000 | +40% Energy Recharge | `passive` |
 | `global-reach` | Global Reach | Your content is translated into every language. | 900,000 | +300% KPS | `passive` |
 
 ### Subreddits
@@ -84,7 +84,7 @@ This document defines the tiers of global upgrades and subreddits for Karma Tyco
 ---
 
 ## Tier 5: The Front Page (1,000,000 - 10,000,000 Karma)
-*Focus: End-game scaling and massive multipliers.*
+*Focus: End-game energy regeneration and massive exposure.*
 
 ### Upgrades
 | ID | Name | Description | Cost | Effect | Type |
@@ -92,7 +92,7 @@ This document defines the tiers of global upgrades and subreddits for Karma Tyco
 | `internet-sensation` | Internet Sensation | Everyone knows your name. | 1,500,000 | +500% KPS | `passive` |
 | `cultural-phenomenon` | Cultural Phenomenon | You are the zeitgeist. | 3,000,000 | 5x Viral Multiplier | `event` |
 | `mainstream-media` | Mainstream Media | TV, Radio, and Newspapers are talking. | 6,000,000 | +1000% KPS | `passive` |
-| `front-page-internet` | Front Page of the Internet | You ARE Reddit. | 10,000,000 | 10x Click Power | `click` |
+| `cultural-hegemony` | Cultural Hegemony | Your influence becomes cultural norms, feeding energy reserves. | 1,000,000,000,000,000,000,000 | +50% Energy Recharge | `passive` |
 
 ### Subreddits
 | ID | Name | Base Cost | KPS |
@@ -102,17 +102,20 @@ This document defines the tiers of global upgrades and subreddits for Karma Tyco
 | `r-announcements` | r/announcements | 10,000,000 | 500,000 |
 
 ## Implementation Notes
-
+ 
 ### New Upgrade Types
 - `event`: Affects viral event parameters (duration, multiplier, frequency).
-
+ 
 ### Multiplier Calculation
 - Passive multipliers should be additive or multiplicative?
   - Current implementation: `reduce((acc, u) => acc * u.multiplier, 1)` -> Multiplicative.
   - This is very powerful. We should ensure the multipliers are balanced.
   - If we use `+10%`, the multiplier is `1.1`.
   - If we have two `+10%` upgrades, it's `1.1 * 1.1 = 1.21` (21% increase).
-
+ 
+### Energy Consumption
+- Upgrade actions consume more energy at higher tiers: Tier 1 upgrades use 2 energy, Tier 2 use 4 energy, Tier 3 use 6 energy, Tier 4 use 8 energy, and Tier 5 use 10 energy per action.
+ 
 ### Viral Event Logic
 - `Viral Duration`: Multiply `duration` and `remainingTime` when creating the event.
 - `Viral Multiplier`: Multiply the `multiplier` of the event.

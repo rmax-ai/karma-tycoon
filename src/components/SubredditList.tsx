@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useGameStore, Subreddit, TIER_THRESHOLDS } from '@/store/useGameStore';
+import { useGameStore, Subreddit, TIER_THRESHOLDS, ACTION_ENERGY_COSTS } from '@/store/useGameStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -134,12 +134,12 @@ export const SubredditList = () => {
                       variant={isViral ? "default" : "secondary"}
                       size="sm"
                       className={`w-full text-[10px] h-8 ${isViral ? 'bg-orange-500 hover:bg-orange-600 animate-pulse' : ''}`}
-                      onClick={() => startAction('post', { subredditId: sub.id, qualityMultiplier: 1 })}
+                      onClick={() => startAction('post', { subredditId: sub.id, qualityMultiplier: 1, isViral })}
                       disabled={activePosts.length >= currentTier.maxPostSlots || !!activeAction || isSubFull}
                     >
                       <Zap className={`mr-1 h-3 w-3 ${isViral ? 'fill-white' : ''}`} />
                       {isSubFull ? 'Sub Full' : isViral ? 'POST (VIRAL BOOST!)' : 'Create Post'}
-                      <span className="ml-auto text-[8px] opacity-70">-{1 * currentTier.tier}⚡</span>
+                      <span className="ml-auto text-[8px] opacity-70">-{isViral ? ACTION_ENERGY_COSTS.post.viral : ACTION_ENERGY_COSTS.post.random}⚡</span>
                     </Button>
                   )}
                   <div className="flex gap-2">
@@ -153,7 +153,7 @@ export const SubredditList = () => {
                       >
                         <ShieldAlert className="mr-1 h-3 w-3 text-orange-500" />
                         Mod Queue
-                        <span className="ml-auto text-[8px] opacity-70">-{2 * currentTier.tier}⚡</span>
+                        <span className="ml-auto text-[8px] opacity-70">-{ACTION_ENERGY_COSTS.modqueue}⚡</span>
                       </Button>
                     )}
                     <Button
@@ -166,7 +166,7 @@ export const SubredditList = () => {
                       <ArrowUpCircle className="mr-1 h-3 w-3" />
                       <div className="flex flex-col items-start leading-none">
                         <span>{sub.level === 0 ? 'Unlock' : 'Level Up'} — {formatKarma(cost)}</span>
-                        <span className="text-[8px] opacity-70 mt-0.5">Cost: {3 * currentTier.tier}⚡</span>
+                        <span className="text-[8px] opacity-70 mt-0.5">Cost: {ACTION_ENERGY_COSTS.levelup}⚡</span>
                       </div>
                     </Button>
                   </div>

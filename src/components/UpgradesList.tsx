@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useGameStore, GlobalUpgrade, TIER_THRESHOLDS } from '@/store/useGameStore';
+import { ACTION_ENERGY_COSTS, useGameStore, GlobalUpgrade, TIER_THRESHOLDS } from '@/store/useGameStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Zap, TrendingUp, MousePointer2 } from 'lucide-react';
@@ -89,7 +89,7 @@ export const UpgradesList = () => {
                   >
                     <div className="flex flex-col items-center leading-none">
                       <span>{upgrade.purchased ? 'Active' : 'Buy'}</span>
-                      {!upgrade.purchased && <span className="text-[8px] opacity-70 mt-0.5">{2 * currentTier.tier}⚡</span>}
+                      {!upgrade.purchased && <span className="text-[8px] opacity-70 mt-0.5">{ACTION_ENERGY_COSTS.upgrade}⚡</span>}
                     </div>
                   </Button>
                 </div>
