@@ -33,11 +33,14 @@ export interface GlobalUpgrade {
   id: string;
   name: string;
   description: string;
-  cost: number;
+  baseCost: number;
   multiplier: number;
   purchased: boolean;
   type: 'click' | 'passive' | 'event';
   tier: number;
+  duration: number; // in seconds
+  remainingTime: number; // in seconds
+  level: number;
 }
 
 export interface ViralEvent {
@@ -179,32 +182,32 @@ const INITIAL_SUBREDDITS: Subreddit[] = [
 ];
 
 const INITIAL_UPGRADES: GlobalUpgrade[] = [
-  // Tier 1 (0 - 1k)
-  { id: 'automod', name: 'Automod', description: 'Reduces spam and increases efficiency. +10% KPS', cost: 50, multiplier: 1.1, purchased: false, type: 'passive', tier: 1 },
-  { id: 'meme-factory', name: 'Meme Factory', description: 'Industrial grade memes. 2x Click Power', cost: 100, multiplier: 2, purchased: false, type: 'click', tier: 1 },
-  { id: 'influencer-partnership', name: 'Influencer Partnership', description: 'Big names are talking about your subs. +20% KPS', cost: 250, multiplier: 1.2, purchased: false, type: 'passive', tier: 1 },
-  { id: 'better-titles', name: 'Better Titles', description: 'Catchier titles lead to more clicks. +15% KPS', cost: 500, multiplier: 1.15, purchased: false, type: 'passive', tier: 1 },
-  { id: 'clickbait-mastery', name: 'Clickbait Mastery', description: "You won't believe how much karma you'll get! 3x Click Power", cost: 750, multiplier: 3, purchased: false, type: 'click', tier: 1 },
-  // Tier 2 (1k - 100k)
-  { id: 'dedicated-mods', name: 'Dedicated Mods', description: '24/7 moderation for your communities. +50% KPS', cost: 5000, multiplier: 1.5, purchased: false, type: 'passive', tier: 2 },
-  { id: 'subreddit-wiki', name: 'Subreddit Wiki', description: 'Better organization for new users. 2x KPS', cost: 15000, multiplier: 2, purchased: false, type: 'passive', tier: 2 },
-  { id: 'discord-server', name: 'Discord Server', description: 'Build a community outside of Reddit. 3x KPS', cost: 40000, multiplier: 3, purchased: false, type: 'passive', tier: 2 },
-  { id: 'bot-network', name: 'Bot Network', description: 'Automated engagement (the "good" kind). 5x KPS', cost: 80000, multiplier: 5, purchased: false, type: 'passive', tier: 2 },
-  // Tier 3 (100k - 100M)
-  { id: 'trending-tab', name: 'Trending Tab', description: 'Get featured on the trending tab more often. 2x Viral Duration', cost: 500000, multiplier: 2, purchased: false, type: 'event', tier: 3 },
-  { id: 'front-page-feature', name: 'Front Page Feature', description: 'A guaranteed spot on the front page. 5x Viral Multiplier', cost: 2000000, multiplier: 5, purchased: false, type: 'event', tier: 3 },
-  { id: 'cross-posting', name: 'Cross-posting Strategy', description: 'Share your content across multiple subs. 10x KPS', cost: 10000000, multiplier: 10, purchased: false, type: 'passive', tier: 3 },
-  { id: 'viral-loop', name: 'Viral Loop', description: 'One viral post leads to another. 5x Viral Frequency', cost: 50000000, multiplier: 5, purchased: false, type: 'event', tier: 3 },
-  // Tier 4 (100M - 10T)
-  { id: 'algo-optimization', name: 'Algorithm Optimization', description: 'You know exactly what the algorithm wants. 100x KPS', cost: 500000000000, multiplier: 100, purchased: false, type: 'passive', tier: 4 },
-  { id: 'verified-status', name: 'Verified Status', description: 'Blue checkmarks for everyone! 500x KPS', cost: 2000000000000, multiplier: 500, purchased: false, type: 'passive', tier: 4 },
-  { id: 'media-empire', name: 'Media Empire', description: 'You own the news cycle. 1000x Click Power', cost: 5000000000000, multiplier: 1000, purchased: false, type: 'click', tier: 4 },
-  { id: 'global-reach', name: 'Global Reach', description: 'Your content is translated into every language. 2000x KPS', cost: 8000000000000, multiplier: 2000, purchased: false, type: 'passive', tier: 4 },
-  // Tier 5 (10T - 1e21)
-  { id: 'internet-sensation', name: 'Internet Sensation', description: 'Everyone knows your name. 10,000x KPS', cost: 100000000000000, multiplier: 10000, purchased: false, type: 'passive', tier: 5 },
-  { id: 'cultural-phenomenon', name: 'Cultural Phenomenon', description: 'You are the zeitgeist. 100x Viral Multiplier', cost: 500000000000000, multiplier: 100, purchased: false, type: 'event', tier: 5 },
-  { id: 'mainstream-media', name: 'Mainstream Media', description: 'TV, Radio, and Newspapers are talking. 1,000,000x KPS', cost: 2000000000000000, multiplier: 1000000, purchased: false, type: 'passive', tier: 5 },
-  { id: 'front-page-internet', name: 'Front Page of the Internet', description: 'You ARE Reddit. 1,000,000x Click Power', cost: 10000000000000000, multiplier: 1000000, purchased: false, type: 'click', tier: 5 },
+  // Tier 1 (0 - 1k) - 5 mins
+  { id: 'automod', name: 'Automod', description: 'Reduces spam and increases efficiency. +10% KPS', baseCost: 50, multiplier: 1.1, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  { id: 'meme-factory', name: 'Meme Factory', description: 'Industrial grade memes. 2x Click Power', baseCost: 100, multiplier: 2, purchased: false, type: 'click', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  { id: 'influencer-partnership', name: 'Influencer Partnership', description: 'Big names are talking about your subs. +20% KPS', baseCost: 250, multiplier: 1.2, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  { id: 'better-titles', name: 'Better Titles', description: 'Catchier titles lead to more clicks. +15% KPS', baseCost: 500, multiplier: 1.15, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  { id: 'clickbait-mastery', name: 'Clickbait Mastery', description: "You won't believe how much karma you'll get! 3x Click Power", baseCost: 750, multiplier: 3, purchased: false, type: 'click', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  // Tier 2 (1k - 100k) - 10 mins
+  { id: 'dedicated-mods', name: 'Dedicated Mods', description: '24/7 moderation for your communities. +50% KPS', baseCost: 5000, multiplier: 1.5, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
+  { id: 'subreddit-wiki', name: 'Subreddit Wiki', description: 'Better organization for new users. 2x KPS', baseCost: 15000, multiplier: 2, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
+  { id: 'discord-server', name: 'Discord Server', description: 'Build a community outside of Reddit. 3x KPS', baseCost: 40000, multiplier: 3, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
+  { id: 'bot-network', name: 'Bot Network', description: 'Automated engagement (the "good" kind). 5x KPS', baseCost: 80000, multiplier: 5, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
+  // Tier 3 (100k - 100M) - 20 mins
+  { id: 'trending-tab', name: 'Trending Tab', description: 'Get featured on the trending tab more often. 2x Viral Duration', baseCost: 500000, multiplier: 2, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  { id: 'front-page-feature', name: 'Front Page Feature', description: 'A guaranteed spot on the front page. 5x Viral Multiplier', baseCost: 2000000, multiplier: 5, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  { id: 'cross-posting', name: 'Cross-posting Strategy', description: 'Share your content across multiple subs. 10x KPS', baseCost: 10000000, multiplier: 10, purchased: false, type: 'passive', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  { id: 'viral-loop', name: 'Viral Loop', description: 'One viral post leads to another. 5x Viral Frequency', baseCost: 50000000, multiplier: 5, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  // Tier 4 (100M - 10T) - 30 mins
+  { id: 'algo-optimization', name: 'Algorithm Optimization', description: 'You know exactly what the algorithm wants. 100x KPS', baseCost: 500000000000, multiplier: 100, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  { id: 'verified-status', name: 'Verified Status', description: 'Blue checkmarks for everyone! 500x KPS', baseCost: 2000000000000, multiplier: 500, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  { id: 'media-empire', name: 'Media Empire', description: 'You own the news cycle. 1000x Click Power', baseCost: 5000000000000, multiplier: 1000, purchased: false, type: 'click', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  { id: 'global-reach', name: 'Global Reach', description: 'Your content is translated into every language. 2000x KPS', baseCost: 8000000000000, multiplier: 2000, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  // Tier 5 (10T - 1e21) - 60 mins
+  { id: 'internet-sensation', name: 'Internet Sensation', description: 'Everyone knows your name. 10,000x KPS', baseCost: 100000000000000, multiplier: 10000, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'cultural-phenomenon', name: 'Cultural Phenomenon', description: 'You are the zeitgeist. 100x Viral Multiplier', baseCost: 500000000000000, multiplier: 100, purchased: false, type: 'event', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'mainstream-media', name: 'Mainstream Media', description: 'TV, Radio, and Newspapers are talking. 1,000,000x KPS', baseCost: 2000000000000000, multiplier: 1000000, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'front-page-internet', name: 'Front Page of the Internet', description: 'You ARE Reddit. 1,000,000x Click Power', baseCost: 10000000000000000, multiplier: 1000000, purchased: false, type: 'click', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
 ];
 
 const NEGATIVE_EVENTS = [
@@ -326,8 +329,10 @@ export const useGameStore = create<GameStore>()(
             duration = 2 + Math.random() * 3; // 2-5s
             const upgrade = state.upgrades.find(u => u.id === data.upgradeId);
             label = `Purchasing ${upgrade?.name || 'upgrade'}...`;
-            if (!upgrade || upgrade.purchased || state.totalKarma < upgrade.cost) return;
-            set({ totalKarma: state.totalKarma - upgrade.cost });
+            if (!upgrade || upgrade.purchased) return;
+            const upgradeCost = Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.level));
+            if (state.totalKarma < upgradeCost) return;
+            set({ totalKarma: state.totalKarma - upgradeCost });
             break;
           case 'levelup':
             energyCost = 3 * tier;
@@ -456,7 +461,7 @@ export const useGameStore = create<GameStore>()(
       purchaseUpgrade: (id: string) => {
         set((state: GameState) => ({
           upgrades: state.upgrades.map((u) =>
-            u.id === id ? { ...u, purchased: true } : u
+            u.id === id ? { ...u, purchased: true, remainingTime: u.duration, level: u.level + 1 } : u
           ),
         }));
         get().triggerCelebration('upgrade');
@@ -709,7 +714,20 @@ export const useGameStore = create<GameStore>()(
           return { ...sub, fatigue: newFatigue, health: newHealth };
         });
 
-        const passiveUpgradeMultiplier = state.upgrades
+        // 5. Update upgrades timers and handle expiration
+        const updatedUpgrades = state.upgrades.map(u => {
+          if (u.purchased) {
+            const newRemainingTime = Math.max(0, u.remainingTime - delta);
+            return {
+              ...u,
+              remainingTime: newRemainingTime,
+              purchased: newRemainingTime > 0
+            };
+          }
+          return u;
+        });
+
+        const passiveUpgradeMultiplier = updatedUpgrades
           .filter((u) => u.purchased && u.type === 'passive')
           .reduce((acc, u) => acc * u.multiplier, 1);
 
@@ -719,7 +737,7 @@ export const useGameStore = create<GameStore>()(
 
         const totalIncome = (passiveIncome + postIncome) * passiveUpgradeMultiplier * globalMultiplier;
 
-        // 5. Check for Game Over (KPS = 0)
+        // 6. Check for Game Over (KPS = 0)
         const isKpsZero = totalIncome <= 0;
         const hasUnlockedSub = state.subreddits.some(s => s.unlocked && s.level > 0);
         
@@ -755,7 +773,7 @@ export const useGameStore = create<GameStore>()(
             nextKpsBreakdown = calculateKpsBreakdown(
               updatedSubreddits,
               updatedPosts,
-              state.upgrades,
+              updatedUpgrades,
               newEvents,
               currentTierForKps,
               now
@@ -801,6 +819,7 @@ export const useGameStore = create<GameStore>()(
             lastKarmaUpdate: nextLastKarmaUpdate,
             currentKpsBreakdown: nextKpsBreakdown,
             subreddits: updatedSubreddits,
+            upgrades: updatedUpgrades,
             activeEvents: newEvents,
             activePosts: updatedPosts,
             clickEnergy: newEnergy,
@@ -849,6 +868,8 @@ export const useGameStore = create<GameStore>()(
             return {
               ...initialUpgrade,
               purchased: persistedUpgrade.purchased,
+              remainingTime: persistedUpgrade.remainingTime !== undefined ? persistedUpgrade.remainingTime : 0,
+              level: persistedUpgrade.level !== undefined ? persistedUpgrade.level : 0,
             };
           }
           return initialUpgrade;
