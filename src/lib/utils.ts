@@ -32,6 +32,50 @@ export function formatKarma(value: number): string {
   return value.toFixed(1).replace(/\.0$/, '');
 }
 
+const CHART_SCALE_STEPS = [
+  { value: 1, suffix: '' },
+  { value: 1e3, suffix: 'K' },
+  { value: 1e6, suffix: 'M' },
+  { value: 1e9, suffix: 'B' },
+  { value: 1e12, suffix: 'T' },
+  { value: 1e15, suffix: 'P' },
+  { value: 1e18, suffix: 'E' },
+  { value: 1e21, suffix: 'Z' },
+  { value: 1e24, suffix: 'Y' },
+];
+
+export interface ChartScale {
+  scale: number;
+  formattedScale: string;
+}
+
+export function getSafeChartScale(values: number[], maxSafeValue = 90071992547409.91): ChartScale {
+  const finiteValues = values.filter((value) => Number.isFinite(value));
+  const maxAbs = finiteValues.length ? Math.max(...finiteValues.map(Math.abs)) : 0;
+  if (maxAbs === 0) {
+    return { scale: 1, formattedScale: '1' };
+  }
+
+  let stepIndex = 0;
+  while (
+    stepIndex < CHART_SCALE_STEPS.length - 1 &&
+    maxAbs / CHART_SCALE_STEPS[stepIndex].value > maxSafeValue
+  ) {
+    stepIndex += 1;
+  }
+
+  let scale = CHART_SCALE_STEPS[stepIndex].value;
+  if (maxAbs / scale > maxSafeValue) {
+    scale = maxAbs / maxSafeValue;
+  }
+
+  const sanitizedScale = Math.max(scale, 1);
+  return {
+    scale: sanitizedScale,
+    formattedScale: formatKarma(sanitizedScale),
+  };
+}
+
 export function generateUsername(): string {
   const qualifiers = [
     "Ambitious", "Brave", "Cunning", "Daring", "Elite",
