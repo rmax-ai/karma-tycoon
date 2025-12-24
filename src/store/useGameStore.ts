@@ -190,28 +190,28 @@ const INITIAL_UPGRADES: GlobalUpgrade[] = [
   // Tier 1 (0 - 1k) - 5 mins
   { id: 'automod', name: 'Automod', description: 'Reduces spam and increases efficiency. +10% KPS', baseCost: 50, multiplier: 1.1, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
   { id: 'meme-factory', name: 'Meme Factory', description: 'Industrial grade memes. 2x Click Power', baseCost: 100, multiplier: 2, purchased: false, type: 'click', tier: 1, duration: 300, remainingTime: 0, level: 0 },
-  { id: 'influencer-partnership', name: 'Influencer Partnership', description: 'Big names are talking about your subs. +20% KPS', baseCost: 250, multiplier: 1.2, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
+  { id: 'community-outreach', name: 'Community Outreach', description: 'Engage with other communities to grow your reach. +10% KPS', baseCost: 900, multiplier: 1.1, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
   { id: 'better-titles', name: 'Better Titles', description: 'Catchier titles lead to more clicks. +15% KPS', baseCost: 500, multiplier: 1.15, purchased: false, type: 'passive', tier: 1, duration: 300, remainingTime: 0, level: 0 },
   { id: 'clickbait-mastery', name: 'Clickbait Mastery', description: "You won't believe how much karma you'll get! 3x Click Power", baseCost: 750, multiplier: 3, purchased: false, type: 'click', tier: 1, duration: 300, remainingTime: 0, level: 0 },
   // Tier 2 (1k - 100k) - 10 mins
   { id: 'dedicated-mods', name: 'Dedicated Mods', description: '24/7 moderation for your communities. +50% KPS', baseCost: 5000, multiplier: 1.5, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
   { id: 'subreddit-wiki', name: 'Subreddit Wiki', description: 'Better organization for new users. 2x KPS', baseCost: 15000, multiplier: 2, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
   { id: 'discord-server', name: 'Discord Server', description: 'Build a community outside of Reddit. 3x KPS', baseCost: 40000, multiplier: 3, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
-  { id: 'bot-network', name: 'Bot Network', description: 'Automated engagement (the "good" kind). 5x KPS', baseCost: 80000, multiplier: 5, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
+  { id: 'engagement-analytics', name: 'Engagement Analytics', description: 'Deep dive into user behavior for better targeting. +20% KPS', baseCost: 95000, multiplier: 1.2, purchased: false, type: 'passive', tier: 2, duration: 600, remainingTime: 0, level: 0 },
   // Tier 3 (100k - 100M) - 20 mins
   { id: 'trending-tab', name: 'Trending Tab', description: 'Get featured on the trending tab more often. 2x Viral Duration', baseCost: 500000, multiplier: 2, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
   { id: 'front-page-feature', name: 'Front Page Feature', description: 'A guaranteed spot on the front page. 5x Viral Multiplier', baseCost: 2000000, multiplier: 5, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
-  { id: 'cross-posting', name: 'Cross-posting Strategy', description: 'Share your content across multiple subs. 10x KPS', baseCost: 10000000, multiplier: 10, purchased: false, type: 'passive', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
+  { id: 'content-syndication', name: 'Content Syndication', description: 'Automatically distribute content across the network. +30% KPS', baseCost: 95000000, multiplier: 1.3, purchased: false, type: 'passive', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
   { id: 'viral-loop', name: 'Viral Loop', description: 'One viral post leads to another. 5x Viral Frequency', baseCost: 50000000, multiplier: 5, purchased: false, type: 'event', tier: 3, duration: 1200, remainingTime: 0, level: 0 },
   // Tier 4 (100M - 10T) - 30 mins
   { id: 'algo-optimization', name: 'Algorithm Optimization', description: 'You know exactly what the algorithm wants. 100x KPS', baseCost: 500000000000, multiplier: 100, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
   { id: 'verified-status', name: 'Verified Status', description: 'Blue checkmarks for everyone! 500x KPS', baseCost: 2000000000000, multiplier: 500, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
   { id: 'media-empire', name: 'Media Empire', description: 'You own the news cycle. 1000x Click Power', baseCost: 5000000000000, multiplier: 1000, purchased: false, type: 'click', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
-  { id: 'global-reach', name: 'Global Reach', description: 'Your content is translated into every language. 2000x KPS', baseCost: 8000000000000, multiplier: 2000, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
+  { id: 'neural-trend-prediction', name: 'Neural Trend Prediction', description: 'AI-powered forecasting of the next big thing. +40% KPS', baseCost: 9500000000000, multiplier: 1.4, purchased: false, type: 'passive', tier: 4, duration: 1800, remainingTime: 0, level: 0 },
   // Tier 5 (10T - 1e21) - 60 mins
   { id: 'internet-sensation', name: 'Internet Sensation', description: 'Everyone knows your name. 10,000x KPS', baseCost: 100000000000000, multiplier: 10000, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
   { id: 'cultural-phenomenon', name: 'Cultural Phenomenon', description: 'You are the zeitgeist. 100x Viral Multiplier', baseCost: 500000000000000, multiplier: 100, purchased: false, type: 'event', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
-  { id: 'mainstream-media', name: 'Mainstream Media', description: 'TV, Radio, and Newspapers are talking. 1,000,000x KPS', baseCost: 2000000000000000, multiplier: 1000000, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
+  { id: 'collective-consciousness', name: 'Collective Consciousness', description: 'Your network becomes the primary source of truth. +50% KPS', baseCost: 950000000000000000, multiplier: 1.5, purchased: false, type: 'passive', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
   { id: 'front-page-internet', name: 'Front Page of the Internet', description: 'You ARE Reddit. 1,000,000x Click Power', baseCost: 10000000000000000, multiplier: 1000000, purchased: false, type: 'click', tier: 5, duration: 3600, remainingTime: 0, level: 0 },
 ];
 
