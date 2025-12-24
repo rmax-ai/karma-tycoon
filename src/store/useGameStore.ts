@@ -100,7 +100,7 @@ export interface CandleData {
 }
 
 export interface GameState {
-  totalKarma: number;
+  spendableKarma: number;
   lifetimeKarma: number;
   subreddits: Subreddit[];
   upgrades: GlobalUpgrade[];
@@ -137,7 +137,6 @@ export interface Celebration {
 
 export interface GameActions {
   addKarma: (amount: number, qualityMultiplier?: number, subredditId?: string) => void;
-  purchaseSubreddit: (id: string) => void;
   upgradeSubreddit: (id: string) => void;
   purchaseUpgrade: (id: string) => void;
   clearModQueue: (id: string) => void;
@@ -221,7 +220,7 @@ const NEGATIVE_EVENTS = [
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
-      totalKarma: 0,
+      spendableKarma: 0,
       lifetimeKarma: 0,
       subreddits: INITIAL_SUBREDDITS,
       upgrades: INITIAL_UPGRADES,
@@ -331,8 +330,8 @@ export const useGameStore = create<GameStore>()(
             label = `Purchasing ${upgrade?.name || 'upgrade'}...`;
             if (!upgrade || upgrade.purchased) return;
             const upgradeCost = Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.level));
-            if (state.totalKarma < upgradeCost) return;
-            set({ totalKarma: state.totalKarma - upgradeCost });
+            if (state.spendableKarma < upgradeCost) return;
+            set({ spendableKarma: state.spendableKarma - upgradeCost });
             break;
           case 'levelup':
             energyCost = 3 * tier;
@@ -341,8 +340,8 @@ export const useGameStore = create<GameStore>()(
             label = `Leveling up ${levelSub?.name || 'subreddit'}...`;
             if (!levelSub) return;
             const levelCost = Math.floor(levelSub.baseCost * Math.pow(1.15, levelSub.level));
-            if (state.totalKarma < levelCost) return;
-            set({ totalKarma: state.totalKarma - levelCost });
+            if (state.spendableKarma < levelCost) return;
+            set({ spendableKarma: state.spendableKarma - levelCost });
             break;
           case 'modqueue':
             energyCost = 2 * tier;
@@ -424,17 +423,6 @@ export const useGameStore = create<GameStore>()(
         get().triggerCelebration('content');
       },
 
-      purchaseSubreddit: (id: string) => {
-        set((state: GameState) => ({
-          subreddits: state.subreddits.map((s) =>
-            s.id === id
-              ? { ...s, level: s.level + 1, unlocked: true }
-              : s
-          ),
-        }));
-        get().triggerCelebration('unlock');
-      },
-
       upgradeSubreddit: (id: string) => {
         const state = get();
         const subreddit = state.subreddits.find((s) => s.id === id);
@@ -478,7 +466,7 @@ export const useGameStore = create<GameStore>()(
 
       resetGame: () => {
         set({
-          totalKarma: 0,
+          spendableKarma: 0,
           lifetimeKarma: 0,
           subreddits: INITIAL_SUBREDDITS,
           upgrades: INITIAL_UPGRADES,
@@ -752,7 +740,7 @@ export const useGameStore = create<GameStore>()(
           const newAccumulator = (state.karmaAccumulator || 0) + totalIncome;
           const timeSinceLastUpdate = now - (state.lastKarmaUpdate || now);
           
-          let nextTotalKarma = state.totalKarma;
+          let nextSpendableKarma = state.spendableKarma;
           let nextLifetimeKarma = state.lifetimeKarma;
           let nextKarmaAccumulator = newAccumulator;
           let nextLastKarmaUpdate = state.lastKarmaUpdate || now;
@@ -763,7 +751,7 @@ export const useGameStore = create<GameStore>()(
 
           // Update karma values and KPS breakdown only every second
           if (timeSinceLastUpdate >= 1000) {
-            nextTotalKarma += newAccumulator;
+            nextSpendableKarma += newAccumulator;
             nextLifetimeKarma += newAccumulator;
             nextKarmaAccumulator = 0;
             nextLastKarmaUpdate = now;
@@ -813,7 +801,7 @@ export const useGameStore = create<GameStore>()(
           const newEnergy = Math.min(currentTier.maxEnergy, state.clickEnergy + energyGain);
 
           return {
-            totalKarma: nextTotalKarma,
+            spendableKarma: nextSpendableKarma,
             lifetimeKarma: nextLifetimeKarma,
             karmaAccumulator: nextKarmaAccumulator,
             lastKarmaUpdate: nextLastKarmaUpdate,
@@ -838,12 +826,12 @@ export const useGameStore = create<GameStore>()(
       storage: createJSONStorage(() => localStorage),
       version: 1,
       merge: (persistedState: any, currentState: GameStore) => {
-        const state = persistedState as GameState;
+        const state = persistedState as any;
         if (!state) return currentState;
 
         // Merge subreddits: keep progress for existing ones, add new ones from INITIAL_SUBREDDITS
         const mergedSubreddits = INITIAL_SUBREDDITS.map((initialSub) => {
-          const persistedSub = state.subreddits?.find((s) => s.id === initialSub.id);
+          const persistedSub = state.subreddits?.find((s: any) => s.id === initialSub.id);
           if (persistedSub) {
             return {
               ...initialSub,
@@ -863,7 +851,7 @@ export const useGameStore = create<GameStore>()(
 
         // Merge upgrades: keep purchased status for existing ones, add new ones from INITIAL_UPGRADES
         const mergedUpgrades = INITIAL_UPGRADES.map((initialUpgrade) => {
-          const persistedUpgrade = state.upgrades?.find((u) => u.id === initialUpgrade.id);
+          const persistedUpgrade = state.upgrades?.find((u: any) => u.id === initialUpgrade.id);
           if (persistedUpgrade) {
             return {
               ...initialUpgrade,
@@ -878,6 +866,7 @@ export const useGameStore = create<GameStore>()(
         return {
           ...currentState,
           ...state,
+          spendableKarma: state.spendableKarma !== undefined ? state.spendableKarma : (state.totalKarma || 0),
           subreddits: mergedSubreddits,
           upgrades: mergedUpgrades,
           activePosts: state.activePosts || [],
@@ -896,7 +885,7 @@ export const useGameStore = create<GameStore>()(
         };
       },
       partialize: (state) => ({
-        totalKarma: state.totalKarma,
+        spendableKarma: state.spendableKarma,
         lifetimeKarma: state.lifetimeKarma,
         subreddits: state.subreddits,
         upgrades: state.upgrades,

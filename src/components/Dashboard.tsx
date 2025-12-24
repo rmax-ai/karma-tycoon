@@ -21,7 +21,7 @@ interface FloatingText {
 }
 
 export const Dashboard = () => {
-  const totalKarma = useGameStore((state) => state.totalKarma);
+  const spendableKarma = useGameStore((state) => state.spendableKarma);
   const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
   const lastKarmaUpdate = useGameStore((state) => state.lastKarmaUpdate);
   const startAction = useGameStore((state) => state.startAction);
@@ -202,15 +202,15 @@ export const Dashboard = () => {
 
             {/* 3. Normal Size Total Karma */}
             <div className="text-center">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Karma</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Spendable Karma</p>
               <motion.h3 
-                key={Math.floor(totalKarma)}
+                key={Math.floor(spendableKarma)}
                 initial={{ opacity: 0.8 }}
                 animate={{ opacity: 1 }}
                 className="text-2xl font-bold text-foreground tabular-nums"
                 data-testid="total-karma"
               >
-                {formatKarma(totalKarma)}
+                {formatKarma(spendableKarma)}
               </motion.h3>
             </div>
             

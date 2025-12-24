@@ -11,7 +11,7 @@ const TOUR_STEPS = [
   {
     target: '[data-tour="dashboard"]',
     title: 'The Dashboard (Karma & KPS)',
-    content: 'Welcome to your Dashboard! This is where you track your Total Karma and Karma Per Second (KPS). KPS is your passive income—the higher it is, the faster you grow!',
+    content: 'Welcome to your Dashboard! This is where you track your Spendable Karma and Karma Per Second (KPS). KPS is your passive income—the higher it is, the faster you grow!',
   },
   {
     target: '[data-tour="create-content"]',

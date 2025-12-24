@@ -11,7 +11,7 @@ import { formatKarma } from '@/lib/utils';
 
 export const SubredditList = () => {
   const subreddits = useGameStore((state) => state.subreddits);
-  const totalKarma = useGameStore((state) => state.totalKarma);
+  const spendableKarma = useGameStore((state) => state.spendableKarma);
   const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
   const startAction = useGameStore((state) => state.startAction);
   const activeAction = useGameStore((state) => state.activeAction);
@@ -32,7 +32,7 @@ export const SubredditList = () => {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-tour="subreddits">
       {visibleSubreddits.map((sub) => {
         const cost = calculateCost(sub);
-        const canAfford = totalKarma >= cost;
+        const canAfford = spendableKarma >= cost;
         
         const viralEvent = activeEvents.find(e => e.subredditId === sub.id);
         const subEventMultiplier = viralEvent ? viralEvent.multiplier : 1;
