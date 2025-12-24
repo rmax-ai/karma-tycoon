@@ -124,6 +124,11 @@ export interface GameState {
   kpsHistory: CandleData[];
   currentCandle: CandleData | null;
   chartTimeframe: number; // in seconds
+  chartIndicators: {
+    sma7: boolean;
+    sma25: boolean;
+    volume: boolean;
+  };
 }
 
 export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue' | 'energy-error';
@@ -153,6 +158,7 @@ export interface GameActions {
   completeTour: () => void;
   skipTour: () => void;
   setChartTimeframe: (seconds: number) => void;
+  toggleChartIndicator: (key: 'sma7' | 'sma25' | 'volume') => void;
 }
 
 export type GameStore = GameState & GameActions & { celebrations: Celebration[] };
@@ -251,9 +257,23 @@ export const useGameStore = create<GameStore>()(
       kpsHistory: [],
       currentCandle: null,
       chartTimeframe: 60, // 1 minute candles by default
+      chartIndicators: {
+        sma7: true,
+        sma25: true,
+        volume: true,
+      },
 
       setChartTimeframe: (seconds: number) => {
         set({ chartTimeframe: seconds, kpsHistory: [], currentCandle: null });
+      },
+
+      toggleChartIndicator: (key: 'sma7' | 'sma25' | 'volume') => {
+        set((state) => ({
+          chartIndicators: {
+            ...state.chartIndicators,
+            [key]: !state.chartIndicators[key],
+          },
+        }));
       },
 
       triggerCelebration: (type: CelebrationType, message?: string) => {
@@ -495,6 +515,11 @@ export const useGameStore = create<GameStore>()(
           kpsHistory: [],
           currentCandle: null,
           chartTimeframe: 60,
+          chartIndicators: {
+            sma7: true,
+            sma25: true,
+            volume: true,
+          },
         });
         if (typeof window !== 'undefined') {
           window.location.reload();
@@ -882,6 +907,11 @@ export const useGameStore = create<GameStore>()(
           kpsHistory: state.kpsHistory || [],
           currentCandle: state.currentCandle || null,
           chartTimeframe: state.chartTimeframe || 60,
+          chartIndicators: state.chartIndicators || {
+            sma7: true,
+            sma25: true,
+            volume: true,
+          },
         };
       },
       partialize: (state) => ({
@@ -907,6 +937,7 @@ export const useGameStore = create<GameStore>()(
         kpsHistory: state.kpsHistory,
         currentCandle: state.currentCandle,
         chartTimeframe: state.chartTimeframe,
+        chartIndicators: state.chartIndicators,
       }),
       migrate: (persistedState: any, version: number) => {
         if (version === 0) {

@@ -5,7 +5,7 @@ import { createChart, ColorType, IChartApi, ISeriesApi, CandlestickData, LineDat
 import { useGameStore, TIER_THRESHOLDS, CandleData } from '@/store/useGameStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Clock } from 'lucide-react';
+import { TrendingUp, Clock, Lock } from 'lucide-react';
 
 export const KpsChart = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -20,6 +20,8 @@ export const KpsChart = () => {
   const chartTimeframe = useGameStore((state) => state.chartTimeframe);
   const setChartTimeframe = useGameStore((state) => state.setChartTimeframe);
   const lifetimeKarma = useGameStore((state) => state.lifetimeKarma);
+  const chartIndicators = useGameStore((state) => state.chartIndicators);
+  const toggleChartIndicator = useGameStore((state) => state.toggleChartIndicator);
 
   const currentTier = TIER_THRESHOLDS.find(t => lifetimeKarma >= t.minKarma && lifetimeKarma < t.maxKarma) || TIER_THRESHOLDS[TIER_THRESHOLDS.length - 1];
   const tier = currentTier.tier;
@@ -32,6 +34,7 @@ export const KpsChart = () => {
     return data;
   }, [kpsHistory, currentCandle]);
 
+  // Initialize Chart
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -68,12 +71,14 @@ export const KpsChart = () => {
       color: '#3b82f6', // blue-500
       lineWidth: 2,
       title: 'SMA 7',
+      visible: chartIndicators.sma7,
     }) : null;
 
     const sma25Series = tier >= 4 ? chart.addSeries(LineSeries, {
       color: '#f59e0b', // amber-500
       lineWidth: 2,
       title: 'SMA 25',
+      visible: chartIndicators.sma25,
     }) : null;
 
     const volumeSeries = tier >= 2 ? chart.addSeries(HistogramSeries, {
@@ -82,6 +87,7 @@ export const KpsChart = () => {
         type: 'volume',
       },
       priceScaleId: '', // set as overlay
+      visible: chartIndicators.volume,
     }) : null;
 
     if (volumeSeries) {
@@ -111,8 +117,22 @@ export const KpsChart = () => {
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [chartTimeframe]);
+  }, [chartTimeframe, tier]); // Re-init when tier changes to add new series
 
+  // Handle Visibility Toggles
+  useEffect(() => {
+    if (sma7SeriesRef.current) {
+      sma7SeriesRef.current.applyOptions({ visible: chartIndicators.sma7 && tier >= 3 });
+    }
+    if (sma25SeriesRef.current) {
+      sma25SeriesRef.current.applyOptions({ visible: chartIndicators.sma25 && tier >= 4 });
+    }
+    if (volumeSeriesRef.current) {
+      volumeSeriesRef.current.applyOptions({ visible: chartIndicators.volume && tier >= 2 });
+    }
+  }, [chartIndicators, tier]);
+
+  // Update Data
   useEffect(() => {
     if (!candlestickSeriesRef.current) return;
 
@@ -185,37 +205,72 @@ export const KpsChart = () => {
       </CardHeader>
       <CardContent className="p-0">
         <div ref={chartContainerRef} className="w-full" />
-        <div className="flex justify-around p-2 border-t border-orange-500/10 bg-muted/20 text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-          {tier >= 3 ? (
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-              <span>SMA 7</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 opacity-30">
-              <span>Locked (Tier 3)</span>
-            </div>
-          )}
-          {tier >= 4 ? (
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-              <span>SMA 25</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 opacity-30">
-              <span>Locked (Tier 4)</span>
-            </div>
-          )}
-          {tier >= 2 ? (
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-500/50 shadow-[0_0_8px_rgba(34,197,94,0.3)]" />
-              <span>Volume (Karma)</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 opacity-30">
-              <span>Locked (Tier 2)</span>
-            </div>
-          )}
+        <div className="flex justify-around p-2 border-t border-orange-500/10 bg-muted/20">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={tier < 3}
+            onClick={() => toggleChartIndicator('sma7')}
+            className={`h-7 px-2 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest transition-all ${
+              tier < 3 ? 'opacity-30' : chartIndicators.sma7 ? 'text-blue-400' : 'text-muted-foreground'
+            }`}
+          >
+            {tier >= 3 ? (
+              <>
+                <div className={`w-2 h-2 rounded-full ${chartIndicators.sma7 ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-zinc-600'}`} />
+                <span>SMA 7</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-2 h-2" />
+                <span>Locked (T3)</span>
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={tier < 4}
+            onClick={() => toggleChartIndicator('sma25')}
+            className={`h-7 px-2 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest transition-all ${
+              tier < 4 ? 'opacity-30' : chartIndicators.sma25 ? 'text-amber-400' : 'text-muted-foreground'
+            }`}
+          >
+            {tier >= 4 ? (
+              <>
+                <div className={`w-2 h-2 rounded-full ${chartIndicators.sma25 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-zinc-600'}`} />
+                <span>SMA 25</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-2 h-2" />
+                <span>Locked (T4)</span>
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={tier < 2}
+            onClick={() => toggleChartIndicator('volume')}
+            className={`h-7 px-2 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest transition-all ${
+              tier < 2 ? 'opacity-30' : chartIndicators.volume ? 'text-green-400' : 'text-muted-foreground'
+            }`}
+          >
+            {tier >= 2 ? (
+              <>
+                <div className={`w-2 h-2 rounded-full ${chartIndicators.volume ? 'bg-green-500/50 shadow-[0_0_8px_rgba(34,197,94,0.3)]' : 'bg-zinc-600'}`} />
+                <span>Volume</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-2 h-2" />
+                <span>Locked (T2)</span>
+              </>
+            )}
+          </Button>
         </div>
       </CardContent>
     </Card>
