@@ -123,12 +123,13 @@ export interface GameState {
   chartTimeframe: number; // in seconds
 }
 
-export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue';
+export type CelebrationType = 'content' | 'upgrade' | 'unlock' | 'levelup' | 'modqueue' | 'energy-error';
 
 export interface Celebration {
   id: string;
   type: CelebrationType;
   timestamp: number;
+  message?: string;
 }
 
 export interface GameActions {
@@ -139,7 +140,7 @@ export interface GameActions {
   clearModQueue: (id: string) => void;
   tick: (delta: number) => void;
   startAction: (type: ActionType, data: ActiveAction['data']) => void;
-  triggerCelebration: (type: CelebrationType) => void;
+  triggerCelebration: (type: CelebrationType, message?: string) => void;
   removeCelebration: (id: string) => void;
   resetGame: () => void;
   continueGame: () => void;
@@ -253,10 +254,10 @@ export const useGameStore = create<GameStore>()(
         set({ chartTimeframe: seconds, kpsHistory: [], currentCandle: null });
       },
 
-      triggerCelebration: (type: CelebrationType) => {
+      triggerCelebration: (type: CelebrationType, message?: string) => {
         const id = `celebration-${Date.now()}-${Math.random()}`;
         set((state) => ({
-          celebrations: [...state.celebrations, { id, type, timestamp: Date.now() }]
+          celebrations: [...state.celebrations, { id, type, timestamp: Date.now(), message }]
         }));
         // Auto-remove after 2 seconds
         setTimeout(() => {
@@ -347,7 +348,10 @@ export const useGameStore = create<GameStore>()(
             break;
         }
 
-        if (state.clickEnergy < energyCost) return;
+        if (state.clickEnergy < energyCost) {
+          get().triggerCelebration('energy-error', `Need ${energyCost} Energy!`);
+          return;
+        }
 
         set({
           activeAction: {

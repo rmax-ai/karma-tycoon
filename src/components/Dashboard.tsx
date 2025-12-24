@@ -7,7 +7,7 @@ import { formatKarma } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, MousePointer2, Info, Trophy } from 'lucide-react';
+import { TrendingUp, MousePointer2, Info, Trophy, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TierInfoModal } from './TierInfoModal';
 import { KpsBreakdown } from './KpsBreakdown';
@@ -31,6 +31,7 @@ export const Dashboard = () => {
   const activePosts = useGameStore((state) => state.activePosts);
   const upgrades = useGameStore((state) => state.upgrades);
   const breakdown = useGameStore((state) => state.currentKpsBreakdown);
+  const clickEnergy = useGameStore((state) => state.clickEnergy);
 
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [isTierModalOpen, setIsTierModalOpen] = useState(false);
@@ -130,12 +131,29 @@ export const Dashboard = () => {
 
             {/* 2. Create Content Button */}
             <div className="relative w-full max-w-xs space-y-4">
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  <span>Post Slots</span>
-                  <span>{activePosts.length} / {currentTier.maxPostSlots}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <span>Post Slots</span>
+                    <span>{activePosts.length} / {currentTier.maxPostSlots}</span>
+                  </div>
+                  <Progress value={(activePosts.length / currentTier.maxPostSlots) * 100} className="h-1" />
                 </div>
-                <Progress value={(activePosts.length / currentTier.maxPostSlots) * 100} className="h-1" />
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <span className="flex items-center gap-0.5">
+                      <Zap className="w-2 h-2 fill-orange-500 text-orange-500" />
+                      Energy
+                    </span>
+                    <span>{Math.floor(clickEnergy)} / {currentTier.maxEnergy}</span>
+                  </div>
+                  <Progress
+                    value={(clickEnergy / currentTier.maxEnergy) * 100}
+                    className="h-1"
+                    indicatorClassName="bg-orange-500"
+                  />
+                </div>
               </div>
 
               <Popover open={noSubsAvailable && !activeAction && activePosts.length < currentTier.maxPostSlots}>

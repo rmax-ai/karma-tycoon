@@ -63,7 +63,10 @@ export const UpgradesList = () => {
                   onClick={() => startAction('upgrade', { upgradeId: upgrade.id })}
                   className={!upgrade.purchased && totalKarma >= upgrade.cost && !activeAction ? 'bg-orange-500 hover:bg-orange-600' : ''}
                 >
-                  {upgrade.purchased ? 'Owned' : 'Buy'}
+                  <div className="flex flex-col items-center leading-none">
+                    <span>{upgrade.purchased ? 'Owned' : 'Buy'}</span>
+                    {!upgrade.purchased && <span className="text-[8px] opacity-70 mt-0.5">{2 * currentTier.tier}⚡</span>}
+                  </div>
                 </Button>
               </div>
             </CardContent>

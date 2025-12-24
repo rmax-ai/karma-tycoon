@@ -139,6 +139,7 @@ export const SubredditList = () => {
                     >
                       <Zap className={`mr-1 h-3 w-3 ${isViral ? 'fill-white' : ''}`} />
                       {isSubFull ? 'Sub Full' : isViral ? 'POST (VIRAL BOOST!)' : 'Create Post'}
+                      <span className="ml-auto text-[8px] opacity-70">-{1 * currentTier.tier}⚡</span>
                     </Button>
                   )}
                   <div className="flex gap-2">
@@ -152,6 +153,7 @@ export const SubredditList = () => {
                       >
                         <ShieldAlert className="mr-1 h-3 w-3 text-orange-500" />
                         Mod Queue
+                        <span className="ml-auto text-[8px] opacity-70">-{2 * currentTier.tier}⚡</span>
                       </Button>
                     )}
                     <Button
@@ -162,7 +164,10 @@ export const SubredditList = () => {
                       data-testid={`subreddit-upgrade-btn-${sub.id}`}
                     >
                       <ArrowUpCircle className="mr-1 h-3 w-3" />
-                      {sub.level === 0 ? 'Unlock' : 'Level Up'} — {formatKarma(cost)}
+                      <div className="flex flex-col items-start leading-none">
+                        <span>{sub.level === 0 ? 'Unlock' : 'Level Up'} — {formatKarma(cost)}</span>
+                        <span className="text-[8px] opacity-70 mt-0.5">Cost: {3 * currentTier.tier}⚡</span>
+                      </div>
                     </Button>
                   </div>
                 </div>

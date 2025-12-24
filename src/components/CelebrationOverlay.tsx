@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, CelebrationType } from '@/store/useGameStore';
-import { Sparkles, ArrowUpCircle, LockOpen, MousePointer2, ShieldCheck } from 'lucide-react';
+import { Sparkles, ArrowUpCircle, LockOpen, MousePointer2, ShieldCheck, Zap } from 'lucide-react';
 
 const CelebrationIcon = ({ type }: { type: CelebrationType }) => {
   switch (type) {
@@ -17,12 +17,15 @@ const CelebrationIcon = ({ type }: { type: CelebrationType }) => {
       return <ArrowUpCircle className="w-16 h-16 text-blue-500" />;
     case 'modqueue':
       return <ShieldCheck className="w-16 h-16 text-emerald-500" />;
+    case 'energy-error':
+      return <Zap className="w-16 h-16 text-rose-500 fill-rose-500" />;
     default:
       return null;
   }
 };
 
-const CelebrationText = ({ type }: { type: CelebrationType }) => {
+const CelebrationText = ({ type, message }: { type: CelebrationType, message?: string }) => {
+  if (message) return message;
   switch (type) {
     case 'content':
       return "Post Created!";
@@ -34,6 +37,8 @@ const CelebrationText = ({ type }: { type: CelebrationType }) => {
       return "Level Up!";
     case 'modqueue':
       return "Queue Cleared!";
+    case 'energy-error':
+      return "Not Enough Energy!";
     default:
       return "";
   }
@@ -64,12 +69,12 @@ export const CelebrationOverlay = () => {
               <CelebrationIcon type={celebration.type} />
             </motion.div>
             <motion.span 
-              className="text-2xl font-black text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] uppercase tracking-tighter"
+              className={`text-2xl font-black drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] uppercase tracking-tighter ${celebration.type === 'energy-error' ? 'text-rose-500' : 'text-white'}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
             >
-              {CelebrationText({ type: celebration.type })}
+              {CelebrationText({ type: celebration.type, message: celebration.message })}
             </motion.span>
             
             {/* Particle effects for unlock and modqueue */}
